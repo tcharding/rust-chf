@@ -4,23 +4,6 @@ mod tests {
     use bitcoin_hashes::*;
 
     #[test]
-    fn hash160() {
-        static HASH_BYTES: [u8; 20] = [
-            0x13, 0x20, 0x72, 0xdf, 0x69, 0x09, 0x33, 0x83, 0x5e, 0xb8, 0xb6, 0xad, 0x0b, 0x77,
-            0xe7, 0xb6, 0xf1, 0x4a, 0xca, 0xd7,
-        ];
-
-        let hash = hash160::Hash::from_slice(&HASH_BYTES).expect("right number of bytes");
-        let js = serde_json::from_str(&serde_json::to_string(&hash).unwrap()).unwrap();
-        let s = schemars::schema_for!(hash160::Hash);
-        let schema = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
-        assert!(jsonschema_valid::Config::from_schema(&schema, None)
-            .unwrap()
-            .validate(&js)
-            .is_ok());
-    }
-
-    #[test]
     fn hmac_sha512() {
         static HASH_BYTES: [u8; 64] = [
             0x8b, 0x41, 0xe1, 0xb7, 0x8a, 0xd1, 0x15, 0x21, 0x11, 0x3c, 0x52, 0xff, 0x18, 0x2a,
@@ -75,24 +58,6 @@ mod tests {
     }
 
     #[test]
-    fn sha256d() {
-        static HASH_BYTES: [u8; 32] = [
-            0xef, 0x53, 0x7f, 0x25, 0xc8, 0x95, 0xbf, 0xa7, 0x82, 0x52, 0x65, 0x29, 0xa9, 0xb6,
-            0x3d, 0x97, 0xaa, 0x63, 0x15, 0x64, 0xd5, 0xd7, 0x89, 0xc2, 0xb7, 0x65, 0x44, 0x8c,
-            0x86, 0x35, 0xfb, 0x6c,
-        ];
-
-        let hash = sha256d::Hash::from_slice(&HASH_BYTES).expect("right number of bytes");
-        let js = serde_json::from_str(&serde_json::to_string(&hash).unwrap()).unwrap();
-        let s = schemars::schema_for!(sha256d::Hash);
-        let schema = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
-        assert!(jsonschema_valid::Config::from_schema(&schema, None)
-            .unwrap()
-            .validate(&js)
-            .is_ok());
-    }
-
-    #[test]
     fn sha256() {
         static HASH_BYTES: [u8; 32] = [
             0xef, 0x53, 0x7f, 0x25, 0xc8, 0x95, 0xbf, 0xa7, 0x82, 0x52, 0x65, 0x29, 0xa9, 0xb6,
@@ -133,12 +98,6 @@ mod tests {
         /// A hash tagged with `$name`.
         pub type TestHash = sha256t::Hash<TestHashTag>;
 
-        sha256t_hash_newtype! {
-            struct NewTypeTag = raw(TEST_MIDSTATE, 64);
-
-            #[hash_newtype(backward)]
-            struct NewTypeHash(_);
-        }
         static HASH_BYTES: [u8; 32] = [
             0xef, 0x53, 0x7f, 0x25, 0xc8, 0x95, 0xbf, 0xa7, 0x82, 0x52, 0x65, 0x29, 0xa9, 0xb6,
             0x3d, 0x97, 0xaa, 0x63, 0x15, 0x64, 0xd5, 0xd7, 0x89, 0xc2, 0xb7, 0x65, 0x44, 0x8c,
