@@ -11,18 +11,11 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::str;
 
-use crate::{sha512, FromSliceError};
+use crate::{sha512, HashEngine as _};
 
 crate::internal_macros::hash_type! {
     256,
-    false,
     "Output of the SHA512/256 hash function.\n\nSHA512/256 is a hash function that uses the sha512 algorithm but it truncates the output to 256 bits. It has different initial constants than sha512 so it produces an entirely different hash compared to sha512. More information at <https://eprint.iacr.org/2010/548.pdf>."
-}
-
-fn from_engine(e: HashEngine) -> Hash {
-    let mut ret = [0; 32];
-    ret.copy_from_slice(&sha512::from_engine(e.0)[..32]);
-    Hash(ret)
 }
 
 /// Engine to compute SHA512/256 hash function.
@@ -41,16 +34,31 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
-    type MidState = [u8; 64];
-
-    fn midstate(&self) -> [u8; 64] { self.0.midstate() }
-
+impl crate::HashEngine<32> for HashEngine {
+    type Midstate = [u8; 64]; // SHA512 midstate.
     const BLOCK_SIZE: usize = sha512::BLOCK_SIZE;
 
+    #[inline]
     fn n_bytes_hashed(&self) -> usize { self.0.n_bytes_hashed() }
 
-    fn input(&mut self, inp: &[u8]) { self.0.input(inp); }
+    #[inline]
+    fn input(&mut self, data: &[u8]) { self.0.input(data) }
+
+    #[inline]
+    fn finalize(self) -> [u8; 32] {
+        let sha512 = self.0.finalize();
+        let mut hash = [0; 32];
+        hash.copy_from_slice(&sha512[..32]);
+        hash
+    }
+
+    #[inline]
+    fn midstate(&self) -> [u8; 64] { self.0.midstate() }
+
+    #[inline]
+    fn from_midstate(midstate: [u8; 64], length: usize) -> HashEngine {
+        HashEngine(sha512::HashEngine::from_midstate(midstate, length))
+    }
 }
 
 #[cfg(test)]
@@ -58,7 +66,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha512_256, Hash, HashEngine};
+        use crate::{sha512_256, HashEngine};
 
         #[derive(Clone)]
         struct Test {

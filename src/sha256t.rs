@@ -8,8 +8,10 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::{cmp, str};
 
-use crate::{sha256, FromSliceError};
+use crate::{sha256, HashEngine as _};
 
+/// HashEngine alias fort a tagged hash.
+#[allow(dead_code)]             // FIXME: Remove this.
 type HashEngine = sha256::HashEngine;
 
 /// Trait representing a tag that can be used as a context for SHA256t hashes.
@@ -21,6 +23,78 @@ pub trait Tag {
 /// Output of the SHA256t hash function.
 #[repr(transparent)]
 pub struct Hash<T: Tag>([u8; 32], PhantomData<T>);
+
+impl<T: Tag> Hash<T> {
+    /// Length of the hash, in bytes.
+    pub const LEN: usize = 32;
+
+    /// Returns the length of the hash, in bytes.
+    // FIXME: function vs const ?
+    pub const fn len() -> usize { 32 }
+
+    /// Creates a default hash engine, adds `bytes` to it, then finalizes the engine.
+    ///
+    /// # Returns
+    ///
+    /// The digest created by hashing `bytes` with engine's hashing algorithm.
+    pub fn hash(bytes: &[u8]) -> Self {
+        let mut engine = Self::engine();
+        engine.input(bytes);
+        Self(engine.finalize(), PhantomData)
+    }
+
+    /// Returns a hash engine that is ready to be used for data.
+    pub fn engine() -> HashEngine { T::engine() }
+
+    /// Creates a `Hash` from an `engine`.
+    ///
+    /// This is equivalent to calling `Hash::from_byte_array(engine.finalize())`.
+    pub fn from_engine(engine: HashEngine) -> Self {
+        let digest = engine.finalize();
+        Self(digest, PhantomData)
+    }
+
+    /// Zero cost conversion between a fixed length byte array shared reference and
+    /// a shared reference to this Hash type.
+    pub fn from_bytes_ref(bytes: &[u8; 32]) -> &Self {
+        // Safety: Sound because Self is #[repr(transparent)] containing [u8; 32]
+        unsafe { &*(bytes as *const _ as *const Self) }
+    }
+
+    /// Zero cost conversion between a fixed length byte array exclusive reference and
+    /// an exclusive reference to this Hash type.
+    pub fn from_bytes_mut(bytes: &mut [u8; 32]) -> &mut Self {
+        // Safety: Sound because Self is #[repr(transparent)] containing [u8; 32]
+        unsafe { &mut *(bytes as *mut _ as *mut Self) }
+    }
+
+    /// Copies a byte slice into a hash object.
+    pub fn from_slice(sl: &[u8]) -> Result<Self, crate::FromSliceError> {
+        if sl.len() != 32 {
+            Err(crate::FromSliceError{expected: 32, got: sl.len()})
+        } else {
+            let mut ret = [0; 32];
+            ret.copy_from_slice(sl);
+            Ok(Self::from_byte_array(ret))
+        }
+    }
+
+    /// Constructs a hash from the underlying byte array.
+    pub fn from_byte_array(bytes: [u8; 32]) -> Self { Self(bytes, PhantomData) }
+
+    /// Returns the underlying byte array.
+    pub fn to_byte_array(self) -> [u8; 32] { self.0 }
+
+    /// Returns a reference to the underlying byte array.
+    pub fn as_byte_array(&self) -> &[u8; 32] { &self.0 }
+
+    /// Returns an all zero hash.
+    ///
+    /// An all zeros hash is a made up construct because there is not a known input that can
+    /// create it, however it is used in various places in Bitcoin e.g., the Bitcoin genesis
+    /// block's previous blockhash and the coinbase transaction's outpoint txid.
+    pub fn all_zeros() -> Self { Self([0x00; 32], PhantomData) }
+}
 
 #[cfg(feature = "schemars")]
 impl<T: Tag> schemars::JsonSchema for Hash<T> {
@@ -35,12 +109,6 @@ impl<T: Tag> schemars::JsonSchema for Hash<T> {
         }));
         schema.into()
     }
-}
-
-impl<T: Tag> Hash<T> {
-    fn internal_new(arr: [u8; 32]) -> Self { Hash(arr, Default::default()) }
-
-    fn internal_engine() -> HashEngine { T::engine() }
 }
 
 impl<T: Tag> Copy for Hash<T> {}
@@ -66,18 +134,10 @@ impl<T: Tag> core::hash::Hash for Hash<T> {
     fn hash<H: core::hash::Hasher>(&self, h: &mut H) { self.0.hash(h) }
 }
 
-crate::internal_macros::hash_trait_impls!(256, true, T: Tag);
-
-fn from_engine<T: Tag>(e: sha256::HashEngine) -> Hash<T> {
-    use crate::Hash as _;
-
-    Hash::from_byte_array(sha256::Hash::from_engine(e).to_byte_array())
-}
+crate::internal_macros::hash_trait_impls!(256, T: Tag);
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "alloc")]
-    use crate::Hash;
     use crate::{sha256, sha256t};
 
     const TEST_MIDSTATE: [u8; 32] = [
@@ -120,7 +180,7 @@ mod tests {
     fn test_sha256t() {
         assert_eq!(
             TestHash::hash(&[0]).to_string(),
-            "29589d5122ec666ab5b4695070b6debc63881a4f85d88d93ddc90078038213ed"
+            "ed1382037800c9dd938dd8854f1a8863bcdeb6705069b4b56a66ec22519d5829",
         );
     }
 }

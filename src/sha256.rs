@@ -15,42 +15,11 @@ use crate::{FromSliceError, HashEngine as _};
 
 crate::internal_macros::hash_type! {
     256,
-    false,
     "Output of the SHA256 hash function."
 }
 
-#[cfg(not(hashes_fuzz))]
-fn from_engine(mut e: HashEngine) -> Hash {
-    // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
-    let data_len = e.length as u64;
-
-    let zeroes = [0; BLOCK_SIZE - 8];
-    e.input(&[0x80]);
-    if e.length % BLOCK_SIZE > zeroes.len() {
-        e.input(&zeroes);
-    }
-    let pad_length = zeroes.len() - (e.length % BLOCK_SIZE);
-    e.input(&zeroes[..pad_length]);
-    debug_assert_eq!(e.length % BLOCK_SIZE, zeroes.len());
-
-    e.input(&(8 * data_len).to_be_bytes());
-    debug_assert_eq!(e.length % BLOCK_SIZE, 0);
-
-    Hash(e.midstate().to_byte_array())
-}
-
-#[cfg(hashes_fuzz)]
-fn from_engine(e: HashEngine) -> Hash {
-    let mut hash = e.midstate().to_byte_array();
-    if hash == [0; 32] {
-        // Assume sha256 is secure and never generate 0-hashes (which represent invalid
-        // secp256k1 secret keys, causing downstream application breakage).
-        hash[0] = 1;
-    }
-    Hash(hash)
-}
-
-const BLOCK_SIZE: usize = 64;
+/// Length of the SHA256 hash's internal block size, in bytes.
+pub const BLOCK_SIZE: usize = 64;
 
 /// Engine to compute SHA256 hash function.
 #[derive(Clone)]
@@ -73,10 +42,49 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
-    type MidState = Midstate;
+impl crate::HashEngine<32> for HashEngine {
+    type Midstate = Midstate;
+    const BLOCK_SIZE: usize = BLOCK_SIZE;
+
+    #[inline]
+    fn n_bytes_hashed(&self) -> usize { self.length }
+
+    engine_input_impl!(32);
 
     #[cfg(not(hashes_fuzz))]
+    #[inline]
+    fn finalize(mut self) -> [u8; 32] {
+        // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
+        let data_len = self.length as u64;
+
+        let zeroes = [0; BLOCK_SIZE - 8];
+        self.input(&[0x80]);
+        if self.length % BLOCK_SIZE > zeroes.len() {
+            self.input(&zeroes);
+        }
+        let pad_length = zeroes.len() - (self.length % BLOCK_SIZE);
+        self.input(&zeroes[..pad_length]);
+        debug_assert_eq!(self.length % BLOCK_SIZE, zeroes.len());
+
+        self.input(&(8 * data_len).to_be_bytes());
+        debug_assert_eq!(self.length % BLOCK_SIZE, 0);
+
+        self.midstate().to_byte_array()
+    }
+
+    #[cfg(hashes_fuzz)]
+    fn finalize(mut self) -> Self::Digest {
+        let mut hash = e.midstate().to_byte_array();
+        if hash == [0; 32] {
+            // Assume sha256 is secure and never generate 0-hashes (which represent invalid
+            // secp256k1 secret keys, causing downstream application breakage).
+            hash[0] = 1;
+        }
+        hash
+    }
+
+    #[cfg(not(hashes_fuzz))]
+    #[inline]
     fn midstate(&self) -> Midstate {
         let mut ret = [0; 32];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(4)) {
@@ -92,11 +100,17 @@ impl crate::HashEngine for HashEngine {
         Midstate(ret)
     }
 
-    const BLOCK_SIZE: usize = 64;
+    #[inline]
+    fn from_midstate(midstate: Midstate, length: usize) -> HashEngine {
+        assert!(length % BLOCK_SIZE == 0, "length is no multiple of the block size");
 
-    fn n_bytes_hashed(&self) -> usize { self.length }
+        let mut ret = [0; 8];
+        for (ret_val, midstate_bytes) in ret.iter_mut().zip(midstate[..].chunks_exact(4)) {
+            *ret_val = u32::from_be_bytes(midstate_bytes.try_into().expect("4 byte slice"));
+        }
 
-    engine_input_impl!();
+        HashEngine { buffer: [0; BLOCK_SIZE], h: ret, length }
+    }
 }
 
 impl Hash {
@@ -129,11 +143,6 @@ impl str::FromStr for Midstate {
 impl Midstate {
     /// Length of the midstate, in bytes.
     const LEN: usize = 32;
-
-    /// Flag indicating whether user-visible serializations of this hash
-    /// should be backward. For some reason Satoshi decided this should be
-    /// true for `Sha256dHash`, so here we are.
-    const DISPLAY_BACKWARD: bool = true;
 
     /// Construct a new [`Midstate`] from the inner value.
     pub const fn from_byte_array(inner: [u8; 32]) -> Self { Midstate(inner) }
@@ -174,9 +183,7 @@ impl hex::FromHex for Midstate {
     type Error = hex::HexToArrayError;
 
     fn from_hex(s: &str) -> Result<Self, Self::Error> {
-        // DISPLAY_BACKWARD is true
-        let mut bytes = <[u8; 32]>::from_hex(s)?;
-        bytes.reverse();
+        let bytes = <[u8; 32]>::from_hex(s)?;
         Ok(Midstate(bytes))
     }
 }
@@ -811,7 +818,7 @@ impl HashEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{sha256, Hash as _, HashEngine};
+    use crate::{sha256, HashEngine};
 
     #[test]
     #[cfg(feature = "alloc")]
@@ -866,7 +873,7 @@ mod tests {
             assert_eq!(&hash.to_string(), &test.output_str);
 
             // Hash through engine, checking that we can input byte by byte
-            let mut engine = sha256::Hash::engine();
+            let mut engine = sha256::HashEngine::new();
             for ch in test.input.as_bytes() {
                 engine.input(&[*ch]);
             }
@@ -888,7 +895,7 @@ mod tests {
     #[rustfmt::skip]
     fn midstate() {
         // Test vector obtained by doing an asset issuance on Elements
-        let mut engine = sha256::Hash::engine();
+        let mut engine = sha256::HashEngine::new();
         // sha256dhash of outpoint
         // 73828cbc65fd68ab78dc86992b76ae50ae2bf8ceedbe8de0483172f0886219f7:0
         engine.input(&[

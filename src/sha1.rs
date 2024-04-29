@@ -7,31 +7,11 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::{cmp, str};
 
-use crate::{FromSliceError, HashEngine as _};
+use crate::HashEngine as _;
 
 crate::internal_macros::hash_type! {
     160,
-    false,
     "Output of the SHA1 hash function."
-}
-
-fn from_engine(mut e: HashEngine) -> Hash {
-    // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
-    let data_len = e.length as u64;
-
-    let zeroes = [0; BLOCK_SIZE - 8];
-    e.input(&[0x80]);
-    if e.length % BLOCK_SIZE > zeroes.len() {
-        e.input(&zeroes);
-    }
-    let pad_length = zeroes.len() - (e.length % BLOCK_SIZE);
-    e.input(&zeroes[..pad_length]);
-    debug_assert_eq!(e.length % BLOCK_SIZE, zeroes.len());
-
-    e.input(&(8 * data_len).to_be_bytes());
-    debug_assert_eq!(e.length % BLOCK_SIZE, 0);
-
-    Hash(e.midstate())
 }
 
 const BLOCK_SIZE: usize = 64;
@@ -54,10 +34,37 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
-    type MidState = [u8; 20];
+impl crate::HashEngine<20> for HashEngine {
+    type Midstate = [u8; 20];
+    const BLOCK_SIZE: usize = BLOCK_SIZE;
+
+    #[inline]
+    fn n_bytes_hashed(&self) -> usize { self.length }
+
+    engine_input_impl!(20);
+
+    #[inline]
+    fn finalize(mut self) -> [u8; 20] {
+        // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
+        let data_len = self.length as u64;
+
+        let zeroes = [0; BLOCK_SIZE - 8];
+        self.input(&[0x80]);
+        if self.length % BLOCK_SIZE > zeroes.len() {
+            self.input(&zeroes);
+        }
+        let pad_length = zeroes.len() - (self.length % BLOCK_SIZE);
+        self.input(&zeroes[..pad_length]);
+        debug_assert_eq!(self.length % BLOCK_SIZE, zeroes.len());
+
+        self.input(&(8 * data_len).to_be_bytes());
+        debug_assert_eq!(self.length % BLOCK_SIZE, 0);
+
+        self.midstate()
+    }
 
     #[cfg(not(hashes_fuzz))]
+    #[inline]
     fn midstate(&self) -> [u8; 20] {
         let mut ret = [0; 20];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(4)) {
@@ -73,11 +80,17 @@ impl crate::HashEngine for HashEngine {
         ret
     }
 
-    const BLOCK_SIZE: usize = 64;
+    #[inline]
+    fn from_midstate(midstate: Self::Midstate, length: usize) -> HashEngine {
+        assert!(length % BLOCK_SIZE == 0, "length is no multiple of the block size");
 
-    fn n_bytes_hashed(&self) -> usize { self.length }
+        let mut ret = [0; 5];
+        for (ret_val, midstate_bytes) in ret.iter_mut().zip(midstate[..].chunks_exact(4)) {
+            *ret_val = u32::from_be_bytes(midstate_bytes.try_into().expect("4 byte slice"));
+        }
 
-    engine_input_impl!();
+        HashEngine { buffer: [0; BLOCK_SIZE], h: ret, length }
+    }
 }
 
 impl HashEngine {
@@ -130,7 +143,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha1, Hash, HashEngine};
+        use crate::{sha1, HashEngine};
 
         #[derive(Clone)]
         struct Test {
@@ -185,7 +198,7 @@ mod tests {
             assert_eq!(&hash.to_string(), &test.output_str);
 
             // Hash through engine, checking that we can input byte by byte
-            let mut engine = sha1::Hash::engine();
+            let mut engine = sha1::HashEngine::new();
             for ch in test.input.as_bytes() {
                 engine.input(&[*ch]);
             }

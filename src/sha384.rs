@@ -6,18 +6,11 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::str;
 
-use crate::{sha512, FromSliceError};
+use crate::{sha512, HashEngine as _};
 
 crate::internal_macros::hash_type! {
     384,
-    false,
     "Output of the SHA384 hash function."
-}
-
-fn from_engine(e: HashEngine) -> Hash {
-    let mut ret = [0; 48];
-    ret.copy_from_slice(&sha512::from_engine(e.0)[..48]);
-    Hash(ret)
 }
 
 /// Engine to compute SHA384 hash function.
@@ -31,16 +24,30 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
-    type MidState = [u8; 64];
-
-    fn midstate(&self) -> [u8; 64] { self.0.midstate() }
-
+impl crate::HashEngine<48> for HashEngine {
+    type Midstate = [u8; 64]; // SHA512 midstate.
     const BLOCK_SIZE: usize = sha512::BLOCK_SIZE;
 
+    #[inline]
     fn n_bytes_hashed(&self) -> usize { self.0.n_bytes_hashed() }
 
-    fn input(&mut self, inp: &[u8]) { self.0.input(inp); }
+    #[inline]
+    fn input(&mut self, data: &[u8]) { self.0.input(data) }
+
+    #[inline]
+    fn finalize(self) -> [u8; 48] {
+        let mut ret = [0; 48];
+        ret.copy_from_slice(&self.0.finalize()[..48]);
+        ret
+    }
+
+    #[inline]
+    fn midstate(&self) -> [u8; 64] { self.0.midstate() }
+
+    #[inline]
+    fn from_midstate(midstate: [u8; 64], length: usize) -> HashEngine {
+        HashEngine(sha512::HashEngine::from_midstate(midstate, length))
+    }
 }
 
 #[cfg(test)]
@@ -48,7 +55,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha384, Hash, HashEngine};
+        use crate::{sha384, HashEngine};
 
         #[derive(Clone)]
         struct Test {

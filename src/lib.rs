@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! Rust hashes library.
+//! Rust Cryptographic Hash Functions.
 //!
-//! This is a simple, no-dependency library which implements the hash functions
-//! needed by Bitcoin. These are SHA256, SHA256d, and RIPEMD160. As an ancillary
-//! thing, it exposes hexadecimal serialization and deserialization, since these
-//! are needed to display hashes anway.
+//! This is a simple, no-dependency library which implements the bunch of crypotographic hash
+//! functions. At the moment this includes:
+//! - SHA-1
+//! - SHA-2
+//!   - SHA256
+//!   - SHA384
+//!   - SHA512
+//!   - SHA512_256
+//! - RIPEMD-160
+//! - SipHash
+//! - HMAC-x (where x is any of the hash functions above).
 //!
 //! ## Commonly used operations
 //!
@@ -124,108 +131,62 @@ pub mod sha512;
 pub mod sha512_256;
 pub mod siphash24;
 
-use core::{borrow, fmt, hash, ops};
+use core::fmt;
 
 pub use hmac::{Hmac, HmacEngine};
 
 /// A hashing engine which bytes can be serialized into.
-pub trait HashEngine: Clone + Default {
+pub trait HashEngine<const N: usize>: Clone + Default {
     /// Byte array representing the internal state of the hash engine.
-    type MidState;
-
-    /// Outputs the midstate of the hash engine. This function should not be
-    /// used directly unless you really know what you're doing.
-    fn midstate(&self) -> Self::MidState;
+    type Midstate;
 
     /// Length of the hash's internal block size, in bytes.
     const BLOCK_SIZE: usize;
+
+    /// Creates a new hash engine.
+    fn new() -> Self { Default::default() }
 
     /// Add data to the hash engine.
     fn input(&mut self, data: &[u8]);
 
     /// Return the number of bytes already n_bytes_hashed(inputted).
     fn n_bytes_hashed(&self) -> usize;
-}
 
-/// Trait which applies to hashes of all types.
-pub trait Hash:
-    Copy
-    + Clone
-    + PartialEq
-    + Eq
-    + PartialOrd
-    + Ord
-    + hash::Hash
-    + fmt::Debug
-    + fmt::Display
-    + fmt::LowerHex
-    + ops::Index<ops::RangeFull, Output = [u8]>
-    + ops::Index<ops::RangeFrom<usize>, Output = [u8]>
-    + ops::Index<ops::RangeTo<usize>, Output = [u8]>
-    + ops::Index<ops::Range<usize>, Output = [u8]>
-    + ops::Index<usize, Output = u8>
-    + borrow::Borrow<[u8]>
-{
-    /// A hashing engine which bytes can be serialized into. It is expected
-    /// to implement the `io::Write` trait, and to never return errors under
-    /// any conditions.
-    type Engine: HashEngine;
+    /// Returns the final digest from the current state of the hash engine.
+    fn finalize(self) -> [u8; N];
 
-    /// The byte array that represents the hash internally.
-    type Bytes: hex::FromHex + Copy;
-
-    /// Constructs a new engine.
-    fn engine() -> Self::Engine { Self::Engine::default() }
-
-    /// Produces a hash from the current state of a given engine.
-    fn from_engine(e: Self::Engine) -> Self;
-
-    /// Length of the hash, in bytes.
-    const LEN: usize;
-
-    /// Copies a byte slice into a hash object.
-    fn from_slice(sl: &[u8]) -> Result<Self, FromSliceError>;
-
-    /// Hashes some bytes.
-    fn hash(data: &[u8]) -> Self {
-        let mut engine = Self::engine();
-        engine.input(data);
-        Self::from_engine(engine)
+    /// Creates a default hash engine, adds `bytes` to it, then finalizes the engine.
+    ///
+    /// # Returns
+    ///
+    /// The digest created by hashing `bytes` with engine's hashing algorithm.
+    fn hash(bytes: &[u8]) -> [u8; N] {
+        let mut engine = Self::new();
+        engine.input(bytes);
+        engine.finalize()
     }
 
     /// Hashes all the byte slices retrieved from the iterator together.
-    fn hash_byte_chunks<B, I>(byte_slices: I) -> Self
+    fn hash_byte_chunks<B, I>(byte_slices: I) -> [u8; N]
     where
         B: AsRef<[u8]>,
         I: IntoIterator<Item = B>,
     {
-        let mut engine = Self::engine();
+        let mut engine = Self::new();
         for slice in byte_slices {
             engine.input(slice.as_ref());
         }
-        Self::from_engine(engine)
+        engine.finalize()
     }
 
-    /// Flag indicating whether user-visible serializations of this hash
-    /// should be backward. For some reason Satoshi decided this should be
-    /// true for `Sha256dHash`, so here we are.
-    const DISPLAY_BACKWARD: bool = false;
+    /// Outputs the midstate of the hash engine. This function should not be
+    /// used directly unless you really know what you're doing.
+    fn midstate(&self) -> Self::Midstate;
 
-    /// Returns the underlying byte array.
-    fn to_byte_array(self) -> Self::Bytes;
-
-    /// Returns a reference to the underlying byte array.
-    fn as_byte_array(&self) -> &Self::Bytes;
-
-    /// Constructs a hash from the underlying byte array.
-    fn from_byte_array(bytes: Self::Bytes) -> Self;
-
-    /// Returns an all zero hash.
+    /// Create a new [`HashEngine`] from a [`Midstate`].
     ///
-    /// An all zeros hash is a made up construct because there is not a known input that can create
-    /// it, however it is used in various places in Bitcoin e.g., the Bitcoin genesis block's
-    /// previous blockhash and the coinbase transaction's outpoint txid.
-    fn all_zeros() -> Self;
+    /// Only use this function if you know what you are doing.
+    fn from_midstate(midstate: Self::Midstate, length: usize) -> Self;
 }
 
 /// Attempted to create a hash from an invalid length slice.

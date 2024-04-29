@@ -7,7 +7,7 @@
 
 use bitcoin_io::impl_write;
 
-use crate::{hmac, ripemd160, sha1, sha256, sha512, siphash24, HashEngine};
+use crate::{ripemd160, sha1, sha256, sha512, siphash24, HashEngine, HmacEngine};
 
 impl_write!(
     sha1::HashEngine,
@@ -54,37 +54,55 @@ impl_write!(
     |_us| { Ok(()) }
 );
 
-impl_write!(
-    hmac::HmacEngine<T>,
-    |us: &mut hmac::HmacEngine<T>, buf| {
-        us.input(buf);
+impl<E: HashEngine<N>, const N: usize> bitcoin_io::Write for HmacEngine<E, N> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> Result<usize, bitcoin_io::Error> {
+        use crate::HashEngine as _;
+        self.input(buf);
         Ok(buf.len())
-    },
-    |_us| { Ok(()) },
-    T: crate::Hash
-);
+    }
+
+    #[inline]
+    fn flush(&mut self) -> Result<(), bitcoin_io::Error> { Ok(()) }
+}
+
+#[cfg(feature = "std")]
+impl<E: HashEngine<N>, const N: usize> std::io::Write for HmacEngine<E, N> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.input(buf);
+        Ok(buf.len())
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+}
+
 
 #[cfg(test)]
 mod tests {
     use bitcoin_io::Write;
 
-    use crate::{hmac, ripemd160, sha1, sha256, sha512, siphash24, Hash};
+    use crate::{ripemd160, sha1, sha256, sha512, siphash24, HashEngine as _, Hmac, HmacEngine};
 
     macro_rules! write_test {
         ($mod:ident, $exp_empty:expr, $exp_256:expr, $exp_64k:expr,) => {
             #[test]
             fn $mod() {
-                let mut engine = $mod::Hash::engine();
+                let mut engine = $mod::HashEngine::new();
                 engine.write_all(&[]).unwrap();
-                assert_eq!(format!("{}", $mod::Hash::from_engine(engine)), $exp_empty);
+                let hash = $mod::Hash::from_engine(engine);
+                assert_eq!(format!("{}", hash), $exp_empty);
 
-                let mut engine = $mod::Hash::engine();
+                let mut engine = $mod::HashEngine::new();
                 engine.write_all(&[1; 256]).unwrap();
-                assert_eq!(format!("{}", $mod::Hash::from_engine(engine)), $exp_256);
+                let hash = $mod::Hash::from_engine(engine);
+                assert_eq!(format!("{}", hash), $exp_256);
 
-                let mut engine = $mod::Hash::engine();
+                let mut engine = $mod::HashEngine::new();
                 engine.write_all(&[99; 64000]).unwrap();
-                assert_eq!(format!("{}", $mod::Hash::from_engine(engine)), $exp_64k);
+                let hash = $mod::Hash::from_engine(engine);
+                assert_eq!(format!("{}", hash), $exp_64k);
             }
         };
     }
@@ -124,24 +142,24 @@ mod tests {
 
     #[test]
     fn hmac() {
-        let mut engine = hmac::HmacEngine::<sha256::Hash>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = HmacEngine::<sha256::HashEngine, 32>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[]).unwrap();
         assert_eq!(
-            format!("{}", hmac::Hmac::from_engine(engine)),
+            format!("{}", Hmac::from_engine(engine)),
             "bf5515149cf797955c4d3194cca42472883281951697c8375d9d9b107f384225"
         );
 
-        let mut engine = hmac::HmacEngine::<sha256::Hash>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = HmacEngine::<sha256::HashEngine, 32>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[1; 256]).unwrap();
         assert_eq!(
-            format!("{}", hmac::Hmac::from_engine(engine)),
+            format!("{}", Hmac::from_engine(engine)),
             "59c9aca10c81c73cb4c196d94db741b6bf2050e0153d5a45f2526bff34675ac5"
         );
 
-        let mut engine = hmac::HmacEngine::<sha256::Hash>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = HmacEngine::<sha256::HashEngine, 32>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[99; 64000]).unwrap();
         assert_eq!(
-            format!("{}", hmac::Hmac::from_engine(engine)),
+            format!("{}", Hmac::from_engine(engine)),
             "30df499717415a395379a1eaabe50038036e4abb5afc94aa55c952f4aa57be08"
         );
     }

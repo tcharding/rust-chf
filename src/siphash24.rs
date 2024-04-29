@@ -7,21 +7,11 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::{cmp, mem, ptr, str};
 
-use crate::{FromSliceError, Hash as _, HashEngine as _};
+use crate::HashEngine as _;
 
 crate::internal_macros::hash_type! {
     64,
-    false,
     "Output of the SipHash24 hash function."
-}
-
-#[cfg(not(hashes_fuzz))]
-fn from_engine(e: HashEngine) -> Hash { Hash::from_u64(Hash::from_engine_to_u64(e)) }
-
-#[cfg(hashes_fuzz)]
-fn from_engine(e: HashEngine) -> Hash {
-    let state = e.midstate();
-    Hash::from_u64(state.v0 ^ state.v1 ^ state.v2 ^ state.v3)
 }
 
 macro_rules! compress {
@@ -133,23 +123,25 @@ impl Default for HashEngine {
     fn default() -> Self { HashEngine::new() }
 }
 
-impl crate::HashEngine for HashEngine {
-    type MidState = State;
-
-    fn midstate(&self) -> State { self.state.clone() }
-
-    const BLOCK_SIZE: usize = 8;
+impl crate::HashEngine<8> for HashEngine {
+    type Midstate = State;
+    const BLOCK_SIZE: usize = 32; // Unused in siphash.
 
     #[inline]
-    fn input(&mut self, msg: &[u8]) {
-        let length = msg.len();
+    fn n_bytes_hashed(&self) -> usize { self.length }
+
+    /// Add `bytes` to the hash engine.
+    #[inline]
+    fn input(&mut self, data: &[u8]) {
+        let length = data.len();
         self.length += length;
 
         let mut needed = 0;
 
         if self.ntail != 0 {
             needed = 8 - self.ntail;
-            self.tail |= unsafe { u8to64_le(msg, 0, cmp::min(length, needed)) } << (8 * self.ntail);
+            self.tail |=
+                unsafe { u8to64_le(data, 0, cmp::min(length, needed)) } << (8 * self.ntail);
             if length < needed {
                 self.ntail += length;
                 return;
@@ -167,7 +159,7 @@ impl crate::HashEngine for HashEngine {
 
         let mut i = needed;
         while i < len - left {
-            let mi = unsafe { load_int_le!(msg, i, u64) };
+            let mi = unsafe { load_int_le!(data, i, u64) };
 
             self.state.v3 ^= mi;
             HashEngine::c_rounds(&mut self.state);
@@ -176,11 +168,44 @@ impl crate::HashEngine for HashEngine {
             i += 8;
         }
 
-        self.tail = unsafe { u8to64_le(msg, i, left) };
+        self.tail = unsafe { u8to64_le(data, i, left) };
         self.ntail = left;
     }
 
-    fn n_bytes_hashed(&self) -> usize { self.length }
+    #[cfg(not(hashes_fuzz))]
+    #[inline]
+    fn finalize(self) -> [u8; 8] {
+        let mut state = self.state;
+
+        let b: u64 = ((self.length as u64 & 0xff) << 56) | self.tail;
+
+        state.v3 ^= b;
+        HashEngine::c_rounds(&mut state);
+        state.v0 ^= b;
+
+        state.v2 ^= 0xff;
+        HashEngine::d_rounds(&mut state);
+
+        let hash = state.v0 ^ state.v1 ^ state.v2 ^ state.v3;
+        hash.to_le_bytes()
+    }
+
+    #[cfg(hashes_fuzz)]
+    fn finalize(mut self) -> Self::Digest {
+        let state = self.midstate();
+        let hash = state.v0 ^ state.v1 ^ state.v2 ^ state.v3;
+        hash.to_le_bytes()
+    }
+
+    #[inline]
+    fn midstate(&self) -> State { self.state.clone() }
+
+    #[inline]
+    fn from_midstate(midstate: Self::Midstate, _length: usize) -> HashEngine {
+        let mut new = Self::default();
+        new.state = midstate;
+        new
+    }
 }
 
 impl Hash {
@@ -188,7 +213,7 @@ impl Hash {
     pub fn hash_with_keys(k0: u64, k1: u64, data: &[u8]) -> Hash {
         let mut engine = HashEngine::with_keys(k0, k1);
         engine.input(data);
-        Hash::from_engine(engine)
+        Hash(engine.finalize())
     }
 
     /// Hashes the given data directly to u64 with an engine with the provided keys.
