@@ -1,11 +1,16 @@
-# Bitcoin Hashes Library
+# Rust Cryptographic Hash Functions.
 
-This is a simple, no-dependency library which implements the hash functions
-needed by Bitcoin. These are SHA1, SHA256, SHA256d, SHA512, and RIPEMD160. As an
-ancillary thing, it exposes hexadecimal serialization and deserialization,
-since these are needed to display hashes anway.
-
-[Documentation](https://docs.rs/bitcoin_hashes/)
+This is a simple, no-dependency library which implements the bunch of crypotographic hash
+functions. At the moment this includes:
+ - SHA-1
+ - SHA-2
+   - SHA256
+   - SHA384
+   - SHA512
+   - SHA512_256
+ - RIPEMD-160
+ - SipHash
+ - HMAC-x (where x is any of the hash functions above).
 
 ## Minimum Supported Rust Version (MSRV)
 
