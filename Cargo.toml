@@ -1,5 +1,5 @@
 [package]
-name = "bitcoin_hashes"
+name = "chf"
 version = "0.14.0"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
 license = "CC0-1.0"
