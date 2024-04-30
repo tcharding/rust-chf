@@ -54,7 +54,7 @@ impl_write!(
     |_us| { Ok(()) }
 );
 
-impl<E: HashEngine<N>, const N: usize> bitcoin_io::Write for HmacEngine<E, N> {
+impl<E: HashEngine> bitcoin_io::Write for HmacEngine<E> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, bitcoin_io::Error> {
         use crate::HashEngine as _;
@@ -67,7 +67,7 @@ impl<E: HashEngine<N>, const N: usize> bitcoin_io::Write for HmacEngine<E, N> {
 }
 
 #[cfg(feature = "std")]
-impl<E: HashEngine<N>, const N: usize> std::io::Write for HmacEngine<E, N> {
+impl<E: HashEngine> std::io::Write for HmacEngine<E> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.input(buf);
@@ -142,21 +142,21 @@ mod tests {
 
     #[test]
     fn hmac() {
-        let mut engine = HmacEngine::<sha256::HashEngine, 32>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = HmacEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[]).unwrap();
         assert_eq!(
             format!("{}", Hmac::from_engine(engine)),
             "bf5515149cf797955c4d3194cca42472883281951697c8375d9d9b107f384225"
         );
 
-        let mut engine = HmacEngine::<sha256::HashEngine, 32>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = HmacEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[1; 256]).unwrap();
         assert_eq!(
             format!("{}", Hmac::from_engine(engine)),
             "59c9aca10c81c73cb4c196d94db741b6bf2050e0153d5a45f2526bff34675ac5"
         );
 
-        let mut engine = HmacEngine::<sha256::HashEngine, 32>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = HmacEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[99; 64000]).unwrap();
         assert_eq!(
             format!("{}", Hmac::from_engine(engine)),

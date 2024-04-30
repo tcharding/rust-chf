@@ -19,7 +19,7 @@
 //! Hashing a single byte slice or a string:
 //!
 //! ```rust
-//! use bitcoin_hashes::sha256;
+//! use chf::sha256;
 //!
 //! let bytes = [0u8; 5];
 //! let hash_of_bytes = sha256::Hash::hash(&bytes);
@@ -30,7 +30,7 @@
 //! Hashing content from a reader:
 //!
 //! ```rust
-//! use bitcoin_hashes::sha256;
+//! use chf::sha256;
 //!
 //! #[cfg(std)]
 //! # fn main() -> std::io::Result<()> {
@@ -49,7 +49,7 @@
 //! Hashing content by [`std::io::Write`] on HashEngine:
 //!
 //! ```rust
-//! use bitcoin_hashes::sha256;
+//! use chf::sha256;
 //! use std::io::Write;
 //!
 //! #[cfg(std)]
@@ -127,12 +127,27 @@ pub mod sha512;
 pub mod sha512_256;
 pub mod siphash24;
 
-use core::fmt;
+use core::{borrow, fmt, hash};
 
 pub use hmac::{Hmac, HmacEngine};
 
 /// A hashing engine which bytes can be serialized into.
-pub trait HashEngine<const N: usize>: Clone + Default {
+pub trait HashEngine: Clone + Default {
+    /// The digest returned by this hash engine.
+    ///
+    /// This is expected to be an array.
+    // trait const types don't work as one would think without nightly.
+    // ref: https://users.rust-lang.org/t/error-e0401-cant-use-generic-parameters-from-outer-function/84512
+    type Digest:
+    Copy
+        + Clone
+        + PartialEq
+        + Eq
+        + PartialOrd
+        + Ord
+        + hash::Hash
+        + borrow::Borrow<[u8]>;
+
     /// Byte array representing the internal state of the hash engine.
     type Midstate;
 
@@ -149,21 +164,21 @@ pub trait HashEngine<const N: usize>: Clone + Default {
     fn n_bytes_hashed(&self) -> usize;
 
     /// Returns the final digest from the current state of the hash engine.
-    fn finalize(self) -> [u8; N];
+    fn finalize(self) -> Self::Digest;
 
     /// Creates a default hash engine, adds `bytes` to it, then finalizes the engine.
     ///
     /// # Returns
     ///
     /// The digest created by hashing `bytes` with engine's hashing algorithm.
-    fn hash(bytes: &[u8]) -> [u8; N] {
+    fn hash(bytes: &[u8]) -> Self::Digest {
         let mut engine = Self::new();
         engine.input(bytes);
         engine.finalize()
     }
 
     /// Hashes all the byte slices retrieved from the iterator together.
-    fn hash_byte_chunks<B, I>(byte_slices: I) -> [u8; N]
+    fn hash_byte_chunks<B, I>(byte_slices: I) -> Self::Digest
     where
         B: AsRef<[u8]>,
         I: IntoIterator<Item = B>,
@@ -188,8 +203,10 @@ pub trait HashEngine<const N: usize>: Clone + Default {
 /// Attempted to create a hash from an invalid length slice.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FromSliceError {
-    expected: usize,
-    got: usize,
+    /// The expected slice length.
+    pub expected: usize,
+    /// The erroneous slice length.
+    pub got: usize,
 }
 
 impl FromSliceError {

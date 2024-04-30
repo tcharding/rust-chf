@@ -63,7 +63,8 @@ impl HashEngine {
     }
 }
 
-impl crate::HashEngine<64> for HashEngine {
+impl crate::HashEngine for HashEngine {
+    type Digest = [u8; 64];
     type Midstate = [u8; 64];
     const BLOCK_SIZE: usize = BLOCK_SIZE;
 
@@ -74,7 +75,7 @@ impl crate::HashEngine<64> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn finalize(mut self) -> [u8; 64] {
+    fn finalize(mut self) -> Self::Digest {
         // pad buffer with a single 1-bit then all 0s, until there are exactly 16 bytes remaining
         let data_len = self.length as u64;
 
@@ -103,7 +104,7 @@ impl crate::HashEngine<64> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn midstate(&self) -> [u8; 64] {
+    fn midstate(&self) -> Self::Midstate {
         let mut ret = [0; 64];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(8)) {
             ret_bytes.copy_from_slice(&val.to_be_bytes());
@@ -112,7 +113,7 @@ impl crate::HashEngine<64> for HashEngine {
     }
 
     #[cfg(hashes_fuzz)]
-    fn midstate(&self) -> [u8; 64] {
+    fn midstate(&self) -> Self::Midstate {
         let mut ret = [0; 64];
         ret.copy_from_slice(&self.buffer[..64]);
         ret
@@ -397,7 +398,7 @@ mod tests {
     fn sha512_serde() {
         use serde_test::{assert_tokens, Configure, Token};
 
-        use crate::{sha512, Hash};
+        use crate::sha512;
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 64] = [
@@ -427,7 +428,8 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{sha512, Hash, HashEngine};
+    use super::*;
+    use crate::sha512;
 
     #[bench]
     pub fn sha512_10(bh: &mut Bencher) {

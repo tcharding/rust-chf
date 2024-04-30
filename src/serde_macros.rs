@@ -113,8 +113,6 @@ macro_rules! serde_impl(
         impl<$($gen: $gent),*> $crate::serde_macros::serde_details::SerdeHash for $t<$($gen),*> {
             const N : usize = $len;
             fn from_slice_delegated(sl: &[u8]) -> core::result::Result<Self, $crate::FromSliceError> {
-                #[allow(unused_imports)]
-                use $crate::Hash as _;
                 $t::from_slice(sl)
             }
         }

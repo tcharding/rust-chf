@@ -31,7 +31,8 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine<20> for HashEngine {
+impl crate::HashEngine for HashEngine {
+    type Digest = [u8; 20];
     type Midstate = [u8; 20];
     const BLOCK_SIZE: usize = BLOCK_SIZE;
 
@@ -42,7 +43,7 @@ impl crate::HashEngine<20> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn finalize(mut self) -> [u8; 20] {
+    fn finalize(mut self) -> Self::Digest {
         // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
         let data_len = self.length as u64;
 
@@ -62,7 +63,7 @@ impl crate::HashEngine<20> for HashEngine {
     }
 
     #[cfg(hashes_fuzz)]
-    fn finalize(self) -> [u8; 20] {
+    fn finalize(self) -> Self::Digest {
         let mut res = self.midstate();
         res[0] ^= (self.length & 0xff) as u8;
         res
@@ -70,7 +71,7 @@ impl crate::HashEngine<20> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn midstate(&self) -> [u8; 20] {
+    fn midstate(&self) -> Self::Midstate {
         let mut ret = [0; 20];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(4)) {
             ret_bytes.copy_from_slice(&(*val).to_le_bytes());
@@ -79,7 +80,7 @@ impl crate::HashEngine<20> for HashEngine {
     }
 
     #[cfg(hashes_fuzz)]
-    fn midstate(&self) -> [u8; 20] {
+    fn midstate(&self) -> Self::Midstate {
         let mut ret = [0; 20];
         ret.copy_from_slice(&self.buffer[..20]);
         ret
@@ -518,7 +519,7 @@ mod tests {
     fn ripemd_serde() {
         use serde_test::{assert_tokens, Configure, Token};
 
-        use crate::{ripemd160, Hash};
+        use crate::ripemd160;
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 20] = [
@@ -539,7 +540,8 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{ripemd160, Hash, HashEngine};
+    use super::*;
+    use crate::ripemd160;
 
     #[bench]
     pub fn ripemd160_10(bh: &mut Bencher) {

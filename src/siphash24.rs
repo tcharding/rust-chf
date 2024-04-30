@@ -120,7 +120,8 @@ impl Default for HashEngine {
     fn default() -> Self { HashEngine::new() }
 }
 
-impl crate::HashEngine<8> for HashEngine {
+impl crate::HashEngine for HashEngine {
+    type Digest = [u8; 8];
     type Midstate = State;
     const BLOCK_SIZE: usize = 32; // Unused in siphash.
 
@@ -171,7 +172,7 @@ impl crate::HashEngine<8> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn finalize(self) -> [u8; 8] {
+    fn finalize(self) -> Self::Digest {
         let mut state = self.state;
 
         let b: u64 = ((self.length as u64 & 0xff) << 56) | self.tail;
@@ -364,7 +365,8 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{siphash24, Hash, HashEngine};
+    use super::*;
+    use crate::siphash24;
 
     #[bench]
     pub fn siphash24_1ki(bh: &mut Bencher) {

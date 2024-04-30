@@ -22,7 +22,8 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine<48> for HashEngine {
+impl crate::HashEngine for HashEngine {
+    type Digest = [u8; 48];
     type Midstate = [u8; 64]; // SHA-512 midstate.
     const BLOCK_SIZE: usize = sha512::BLOCK_SIZE;
 
@@ -33,7 +34,7 @@ impl crate::HashEngine<48> for HashEngine {
     fn input(&mut self, data: &[u8]) { self.0.input(data) }
 
     #[inline]
-    fn finalize(self) -> [u8; 48] {
+    fn finalize(self) -> Self::Digest {
         let mut ret = [0; 48];
         ret.copy_from_slice(&self.0.finalize()[..48]);
         ret
@@ -53,7 +54,8 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha384, HashEngine};
+        use super::*;
+        use crate::sha384;
 
         #[derive(Clone)]
         struct Test {
@@ -150,7 +152,8 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{sha384, Hash, HashEngine};
+    use super::*;
+    use crate::sha384;
 
     #[bench]
     pub fn sha384_10(bh: &mut Bencher) {

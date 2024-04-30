@@ -41,7 +41,8 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine<32> for HashEngine {
+impl crate::HashEngine for HashEngine {
+    type Digest = [u8; 32];
     type Midstate = Midstate;
     const BLOCK_SIZE: usize = BLOCK_SIZE;
 
@@ -52,7 +53,7 @@ impl crate::HashEngine<32> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn finalize(mut self) -> [u8; 32] {
+    fn finalize(mut self) -> Self::Digest {
         // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
         let data_len = self.length as u64;
 
@@ -817,7 +818,7 @@ impl HashEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{sha256, HashEngine};
+    use crate::sha256;
 
     #[test]
     #[cfg(feature = "alloc")]
@@ -1044,7 +1045,8 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{sha256, Hash, HashEngine};
+    use super::*;
+    use crate::sha256;
 
     #[bench]
     pub fn sha256_10(bh: &mut Bencher) {

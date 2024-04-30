@@ -31,7 +31,8 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine<20> for HashEngine {
+impl crate::HashEngine for HashEngine {
+    type Digest = [u8; 20];
     type Midstate = [u8; 20];
     const BLOCK_SIZE: usize = BLOCK_SIZE;
 
@@ -41,7 +42,7 @@ impl crate::HashEngine<20> for HashEngine {
     engine_input_impl!(20);
 
     #[inline]
-    fn finalize(mut self) -> [u8; 20] {
+    fn finalize(mut self) -> Self::Digest {
         // pad buffer with a single 1-bit then all 0s, until there are exactly 8 bytes remaining
         let data_len = self.length as u64;
 
@@ -62,7 +63,7 @@ impl crate::HashEngine<20> for HashEngine {
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
-    fn midstate(&self) -> [u8; 20] {
+    fn midstate(&self) -> Self::Midstate {
         let mut ret = [0; 20];
         for (val, ret_bytes) in self.h.iter().zip(ret.chunks_exact_mut(4)) {
             ret_bytes.copy_from_slice(&val.to_be_bytes())
@@ -71,7 +72,7 @@ impl crate::HashEngine<20> for HashEngine {
     }
 
     #[cfg(hashes_fuzz)]
-    fn midstate(&self) -> [u8; 20] {
+    fn midstate(&self) -> Self::Midstate {
         let mut ret = [0; 20];
         ret.copy_from_slice(&self.buffer[..20]);
         ret
@@ -140,7 +141,8 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha1, HashEngine};
+        use super::*;
+        use crate::sha1;
 
         #[derive(Clone)]
         struct Test {
@@ -210,7 +212,7 @@ mod tests {
     fn sha1_serde() {
         use serde_test::{assert_tokens, Configure, Token};
 
-        use crate::{sha1, Hash};
+        use crate::sha1;
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 20] = [
@@ -231,7 +233,8 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{sha1, Hash, HashEngine};
+    use super::*;
+    use crate::sha1;
 
     #[bench]
     pub fn sha1_10(bh: &mut Bencher) {
