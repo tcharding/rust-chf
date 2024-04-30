@@ -2,7 +2,7 @@
 
 //! Rust Cryptographic Hash Functions.
 //!
-//! This is a simple, no-dependency library which implements the bunch of crypotographic hash
+//! This is a simple, no-dependency library which implements crypotographic hash
 //! functions. At the moment this includes:
 //! - SHA-1
 //! - SHA-2
@@ -20,7 +20,6 @@
 //!
 //! ```rust
 //! use bitcoin_hashes::sha256;
-//! use bitcoin_hashes::Hash;
 //!
 //! let bytes = [0u8; 5];
 //! let hash_of_bytes = sha256::Hash::hash(&bytes);
@@ -32,7 +31,6 @@
 //!
 //! ```rust
 //! use bitcoin_hashes::sha256;
-//! use bitcoin_hashes::Hash;
 //!
 //! #[cfg(std)]
 //! # fn main() -> std::io::Result<()> {
@@ -52,7 +50,6 @@
 //!
 //! ```rust
 //! use bitcoin_hashes::sha256;
-//! use bitcoin_hashes::Hash;
 //! use std::io::Write;
 //!
 //! #[cfg(std)]
@@ -197,6 +194,11 @@ pub struct FromSliceError {
 }
 
 impl FromSliceError {
+    /// Creates a new error (args are the same order as standard error code order).
+    pub fn new(got: usize, expected: usize) -> Self {
+        Self { got, expected }
+    }
+
     /// Returns the expected slice length.
     pub fn expected_length(&self) -> usize { self.expected }
 

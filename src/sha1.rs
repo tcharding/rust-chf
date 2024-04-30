@@ -3,8 +3,6 @@
 //! SHA1 implementation.
 //!
 
-use core::ops::Index;
-use core::slice::SliceIndex;
 use core::{cmp, str};
 
 use crate::HashEngine as _;

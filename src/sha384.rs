@@ -2,8 +2,6 @@
 
 //! SHA384 implementation.
 
-use core::ops::Index;
-use core::slice::SliceIndex;
 use core::str;
 
 use crate::{sha512, HashEngine as _};
