@@ -4,7 +4,7 @@
 
 ## API improvemnts
 
-* Add support for SHA384 [#2538](https://github.com/rust-bitcoin/rust-bitcoin/pull/2538)
+* Add support for SHA-384 [#2538](https://github.com/rust-bitcoin/rust-bitcoin/pull/2538)
 * Make from_hex inherent for byte-like types [#2491](https://github.com/rust-bitcoin/rust-bitcoin/pull/2491)
 * Add `Hash::from_bytes_iter` to construct hashes from iterators [#2272](https://github.com/rust-bitcoin/rust-bitcoin/pull/2272)
 * Make some constructors `const` [#2446](https://github.com/rust-bitcoin/rust-bitcoin/pull/2446)
@@ -28,7 +28,7 @@ bumped the Minimum Supported Rust Version across the `rust-bitcoin` ecosystem to
 * Bump MSRV to 1.48.0 [#1729](https://github.com/rust-bitcoin/rust-bitcoin/pull/1729).
 * Depend on new `hex-conservative` crate and remove `hex` module [#1883](https://github.com/rust-bitcoin/rust-bitcoin/pull/1833).
 * Make `sha256t_hash_newtype!` evocative of the output [#1773](https://github.com/rust-bitcoin/rust-bitcoin/pull/1773).
-* Implement computing SHA256 in const context [#1769](https://github.com/rust-bitcoin/rust-bitcoin/pull/1769).
+* Implement computing SHA-256 in const context [#1769](https://github.com/rust-bitcoin/rust-bitcoin/pull/1769).
 * Add `from_bytes_ref` and `from_bytes_mut` to all hash types [#1761](https://github.com/rust-bitcoin/rust-bitcoin/pull/1761).
 * Rename `crate::Error` to `crate::FromSliceError` [#1873](https://github.com/rust-bitcoin/rust-bitcoin/pull/1873).
 * Add simd sha256 intrinsics for x86 machines [#1962](https://github.com/rust-bitcoin/rust-bitcoin/pull/1962).

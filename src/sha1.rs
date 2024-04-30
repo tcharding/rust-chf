@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! SHA1 implementation.
-//!
+//! SHA-1 implementation.
 
 use core::{cmp, str};
 
@@ -9,12 +8,12 @@ use crate::HashEngine as _;
 
 crate::internal_macros::hash_type! {
     160,
-    "Output of the SHA1 hash function."
+    "Output of the SHA-1 hash function."
 }
 
 const BLOCK_SIZE: usize = 64;
 
-/// Engine to compute SHA1 hash function.
+/// Engine to compute SHA-1 hash function.
 #[derive(Clone)]
 pub struct HashEngine {
     buffer: [u8; BLOCK_SIZE],

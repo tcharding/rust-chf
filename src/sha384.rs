@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! SHA384 implementation.
+//! SHA-384 implementation.
 
 use core::str;
 
@@ -8,10 +8,10 @@ use crate::{sha512, HashEngine as _};
 
 crate::internal_macros::hash_type! {
     384,
-    "Output of the SHA384 hash function."
+    "Output of the SHA-384 hash function."
 }
 
-/// Engine to compute SHA384 hash function.
+/// Engine to compute SHA-384 hash function.
 #[derive(Clone)]
 pub struct HashEngine(sha512::HashEngine);
 
@@ -23,7 +23,7 @@ impl Default for HashEngine {
 }
 
 impl crate::HashEngine<48> for HashEngine {
-    type Midstate = [u8; 64]; // SHA512 midstate.
+    type Midstate = [u8; 64]; // SHA-512 midstate.
     const BLOCK_SIZE: usize = sha512::BLOCK_SIZE;
 
     #[inline]

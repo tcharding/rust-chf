@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! SHA256 implementation.
-//!
+//! SHA-256 implementation.
 
 #[cfg(all(feature = "std", target_arch = "x86"))]
 use core::arch::x86::*;
@@ -15,13 +14,13 @@ use crate::{FromSliceError, HashEngine as _};
 
 crate::internal_macros::hash_type! {
     256,
-    "Output of the SHA256 hash function."
+    "Output of the SHA-256 hash function."
 }
 
-/// Length of the SHA256 hash's internal block size, in bytes.
+/// Length of the SHA-256 hash's internal block size, in bytes.
 pub const BLOCK_SIZE: usize = 64;
 
-/// Engine to compute SHA256 hash function.
+/// Engine to compute SHA-256 hash function.
 #[derive(Clone)]
 pub struct HashEngine {
     buffer: [u8; BLOCK_SIZE],
@@ -120,7 +119,7 @@ impl Hash {
     pub const fn const_hash(bytes: &[u8]) -> Self { Hash(Midstate::const_hash(bytes, true).0) }
 }
 
-/// Output of the SHA256 hash function.
+/// Output of the SHA-256 hash function.
 #[derive(Copy, Clone, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
 pub struct Midstate(pub [u8; 32]);
 

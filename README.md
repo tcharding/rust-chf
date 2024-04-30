@@ -4,12 +4,12 @@ This is a simple, no-dependency library which implements the bunch of crypotogra
 functions. At the moment this includes:
  - SHA-1
  - SHA-2
-   - SHA256
-   - SHA384
-   - SHA512
-   - SHA512_256
+   - SHA-256
+   - SHA-384
+   - SHA-512
+   - SHA-512/256
  - RIPEMD-160
- - SipHash
+ - SipHash-2-4
  - HMAC-x (where x is any of the hash functions above).
 
 ## Minimum Supported Rust Version (MSRV)

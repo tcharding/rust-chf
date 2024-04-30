@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! SHA512 implementation.
-//!
+//! SHA-512 implementation.
 
 use core::{cmp, str};
 
@@ -9,12 +8,12 @@ use crate::HashEngine as _;
 
 crate::internal_macros::hash_type! {
     512,
-    "Output of the SHA512 hash function."
+    "Output of the SHA-512 hash function."
 }
 
 pub(crate) const BLOCK_SIZE: usize = 128;
 
-/// Engine to compute SHA512 hash function.
+/// Engine to compute SHA-512 hash function.
 #[derive(Clone)]
 pub struct HashEngine {
     h: [u64; 8],

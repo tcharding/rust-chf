@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: CC0-1.0
 
-//! SHA256t implementation (tagged SHA256).
+//! Tagged SHA-256 implementation.
 //!
+//! Instead of providing a hash type and engine for tagged hashes we instead provide a macro
+//! `sha256t_hash_newtype` that can be used to create a `FooHash` and `FooHashEngine` pair that
+//! implement pre-tagged sha256 hashing as defined by the Bitcoin network.
+// FIXME: Is this tagging a Bitcoin thing? If so I believe the module should not exist in this crate.
 
 /// Defines a new hash type and a pre-tagged hash engine.
 #[macro_export]
@@ -237,10 +241,10 @@ macro_rules! sha256t_hash_newtype_tag_constructor {
 #[cfg(test)]
 mod tests {
     sha256t_hash_newtype! {
-        /// Engine to compute SHA256 hash function pre-tagged with "example".
+        /// Engine to compute SHA-256 hash function pre-tagged with "example".
         struct ExampleHashEngine(_) = hash_str("example");
 
-        /// Output of the tagged SHA256 hash function.
+        /// Output of the tagged SHA-256 hash function.
         struct ExampleHash(_);
     }
 
@@ -259,10 +263,10 @@ mod tests {
     ];
 
     sha256t_hash_newtype! {
-        /// Engine to compute SHA256 hash function pre-tagged with "example".
+        /// Engine to compute SHA-256 hash function pre-tagged with "example".
         struct TestHashEngine(_) = raw(TEST_MIDSTATE, 64);
 
-        /// Output of the tagged SHA256 hash function.
+        /// Output of the tagged SHA-256 hash function.
         struct TestHash(_);
     }
 
