@@ -452,11 +452,11 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{sha256, HashEngine, Hmac};
+    use crate::{sha256, HashEngine, HmacEngine};
 
     #[bench]
     pub fn hmac_sha256_10(bh: &mut Bencher) {
-        let mut engine = Hmac::<sha256::Hash>::engine();
+        let mut engine: HmacEngine<sha256::HashEngine> = Default::default();
         let bytes = [1u8; 10];
         bh.iter(|| {
             engine.input(&bytes);
@@ -466,7 +466,7 @@ mod benches {
 
     #[bench]
     pub fn hmac_sha256_1k(bh: &mut Bencher) {
-        let mut engine = Hmac::<sha256::Hash>::engine();
+        let mut engine: HmacEngine<sha256::HashEngine> = Default::default();
         let bytes = [1u8; 1024];
         bh.iter(|| {
             engine.input(&bytes);
@@ -476,7 +476,7 @@ mod benches {
 
     #[bench]
     pub fn hmac_sha256_64k(bh: &mut Bencher) {
-        let mut engine = Hmac::<sha256::Hash>::engine();
+        let mut engine: HmacEngine<sha256::HashEngine> = Default::default();
         let bytes = [1u8; 65536];
         bh.iter(|| {
             engine.input(&bytes);
