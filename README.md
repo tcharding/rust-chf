@@ -1,6 +1,6 @@
 # Rust Cryptographic Hash Functions.
 
-This is a simple, no-dependency library which implements the bunch of crypotographic hash
+This is a simple, minimal-dependency library which implements the bunch of crypotographic hash
 functions. At the moment this includes:
  - SHA-1
  - SHA-2
