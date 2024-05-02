@@ -118,6 +118,7 @@ macro_rules! hash_type {
             /// # Returns
             ///
             /// The digest created by hashing `bytes` with engine's hashing algorithm.
+            #[allow(clippy::self_named_constructors)] // `hash` is a verb but `Hash` is a noun.
             pub fn hash(bytes: &[u8]) -> Self {
                 let mut engine = Self::engine();
                 engine.input(bytes);
