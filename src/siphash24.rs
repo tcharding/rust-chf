@@ -200,9 +200,7 @@ impl crate::HashEngine for HashEngine {
 
     #[inline]
     fn from_midstate(midstate: Self::Midstate, _length: usize) -> HashEngine {
-        let mut new = Self::default();
-        new.state = midstate;
-        new
+        HashEngine { state: midstate, ..Default::default() }
     }
 }
 
