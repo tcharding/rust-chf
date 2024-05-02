@@ -138,8 +138,7 @@ pub trait HashEngine: Clone + Default {
     /// This is expected to be an array.
     // trait const types don't work as one would think without nightly.
     // ref: https://users.rust-lang.org/t/error-e0401-cant-use-generic-parameters-from-outer-function/84512
-    type Digest:
-    Copy
+    type Digest: Copy
         + Clone
         + PartialEq
         + Eq
@@ -211,9 +210,7 @@ pub struct FromSliceError {
 
 impl FromSliceError {
     /// Creates a new error (args are the same order as standard error code order).
-    pub fn new(got: usize, expected: usize) -> Self {
-        Self { got, expected }
-    }
+    pub fn new(got: usize, expected: usize) -> Self { Self { got, expected } }
 
     /// Returns the expected slice length.
     pub fn expected_length(&self) -> usize { self.expected }

@@ -8,12 +8,12 @@
 //! Hash-based Message Authentication Code (HMAC).
 //!
 
-use core::{borrow, fmt, ops, str};
 use core::borrow::Borrow;
+use core::{borrow, fmt, ops, str};
 
 use hex::DisplayHex;
 
-use crate::{HashEngine, FromSliceError};
+use crate::{FromSliceError, HashEngine};
 
 /// A hash computed from a RFC 2104 HMAC. Parameterized by the underlying hash function.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,14 +22,18 @@ pub struct Hmac<const N: usize>([u8; N]);
 impl<const N: usize> Hmac<N> {
     /// Returns a hash engine that is ready to be used for the data.
     pub fn engine<E>() -> E
-    where E: HashEngine<Digest = [u8; N]>,
-    { E::new() }
+    where
+        E: HashEngine<Digest = [u8; N]>,
+    {
+        E::new()
+    }
 
     /// Creates a `Hash` from an `engine`.
     ///
     /// This is equivalent to calling `Hash::from_byte_array(engine.finalize())`.
     pub fn from_engine<E>(engine: E) -> Self
-        where E: HashEngine<Digest = [u8; N]>,
+    where
+        E: HashEngine<Digest = [u8; N]>,
     {
         let digest = engine.finalize();
         Self::from_byte_array(digest)
@@ -52,7 +56,7 @@ impl<const N: usize> Hmac<N> {
     /// Copies a byte slice into a hash object.
     pub fn from_slice(sl: &[u8]) -> Result<Self, FromSliceError> {
         if sl.len() != N {
-            Err(FromSliceError{expected: N, got: sl.len()})
+            Err(FromSliceError { expected: N, got: sl.len() })
         } else {
             let mut ret = [0; N];
             ret.copy_from_slice(sl);
@@ -95,7 +99,7 @@ impl<const N: usize> schemars::JsonSchema for Hmac<N> {
 impl<const N: usize> str::FromStr for Hmac<N> {
     type Err = hex::HexToArrayError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use hex::{FromHex};
+        use hex::FromHex;
 
         let bytes = <[u8; N]>::from_hex(s)?;
         Ok(Self::from_byte_array(bytes))
@@ -147,7 +151,7 @@ impl<const N: usize> ops::Index<ops::RangeFull> for Hmac<N> {
     type Output = [u8];
     fn index(&self, index: ops::RangeFull) -> &[u8] { &self.0[index] }
 }
- 
+
 impl<const N: usize> borrow::Borrow<[u8]> for Hmac<N> {
     fn borrow(&self) -> &[u8] { &self.0 }
 }
@@ -155,9 +159,7 @@ impl<const N: usize> borrow::Borrow<[u8]> for Hmac<N> {
 #[cfg(feature = "serde")]
 impl<const N: usize> crate::serde_macros::serde_details::SerdeHash for Hmac<N> {
     const N: usize = N;
-    fn from_slice_delegated(sl: &[u8]) -> Result<Self, FromSliceError> {
-        Hmac::from_slice(sl)
-    }
+    fn from_slice_delegated(sl: &[u8]) -> Result<Self, FromSliceError> { Hmac::from_slice(sl) }
 }
 
 #[cfg(feature = "serde")]
@@ -440,7 +442,7 @@ mod tests {
 
         let engine: HmacEngine<sha256::HashEngine> = Default::default();
         let hmac = Hmac::from_engine(engine);
-        let hint =  hmac.0.iter().size_hint().1;
+        let hint = hmac.0.iter().size_hint().1;
 
         println!("hint: {:?}", hint);
     }

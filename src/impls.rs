@@ -78,7 +78,6 @@ impl<E: HashEngine> std::io::Write for HmacEngine<E> {
     fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
 }
 
-
 #[cfg(test)]
 mod tests {
     use bitcoin_io::Write;

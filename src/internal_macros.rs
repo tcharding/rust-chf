@@ -55,11 +55,11 @@ pub(crate) use arr_newtype_fmt_impl;
 /// `internal_new` is required so that types with more than one field are constructible.
 /// `internal_engine` is required to initialize the engine for given hash type.
 macro_rules! hash_trait_impls {
-    ($hash:ident, $bits:expr)  => {
+    ($hash:ident, $bits:expr) => {
         impl $crate::_export::_core::str::FromStr for $hash {
             type Err = $crate::hex::HexToArrayError;
             fn from_str(s: &str) -> $crate::_export::_core::result::Result<Self, Self::Err> {
-                use $crate::hex::{FromHex};
+                use $crate::hex::FromHex;
 
                 let bytes = <[u8; $bits / 8]>::from_hex(s)?;
                 Ok(Self::from_byte_array(bytes))
@@ -68,23 +68,21 @@ macro_rules! hash_trait_impls {
 
         $crate::internal_macros::arr_newtype_fmt_impl!($hash, $bits / 8);
         serde_impl!($hash, $bits / 8);
-        borrow_slice_impl!($hash );
+        borrow_slice_impl!($hash);
 
         impl $crate::_export::_core::convert::AsRef<[u8; $bits / 8]> for $hash {
-            fn as_ref(&self) -> &[u8; $bits / 8] {
-                &self.0
-            }
+            fn as_ref(&self) -> &[u8; $bits / 8] { &self.0 }
         }
 
-        impl<I: $crate::_export::_core::slice::SliceIndex<[u8]>> $crate::_export::_core::ops::Index<I> for $hash {
+        impl<I: $crate::_export::_core::slice::SliceIndex<[u8]>>
+            $crate::_export::_core::ops::Index<I> for $hash
+        {
             type Output = I::Output;
 
             #[inline]
-            fn index(&self, index: I) -> &Self::Output {
-                &self.0[index]
-            }
+            fn index(&self, index: I) -> &Self::Output { &self.0[index] }
         }
-    }
+    };
 }
 pub(crate) use hash_trait_impls;
 
@@ -153,7 +151,7 @@ macro_rules! hash_type {
             /// Copies a byte slice into a hash object.
             pub fn from_slice(sl: &[u8]) -> Result<Self, crate::FromSliceError> {
                 if sl.len() != $bits / 8 {
-                    Err(crate::FromSliceError{expected: $bits / 8, got: sl.len()})
+                    Err(crate::FromSliceError { expected: $bits / 8, got: sl.len() })
                 } else {
                     let mut ret = [0; $bits / 8];
                     ret.copy_from_slice(sl);
