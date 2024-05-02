@@ -165,8 +165,7 @@ impl Midstate {
     ///
     /// Warning: this function is inefficient. It should be only used in `const` context.
     ///
-    /// Computes non-finalized hash of `sha256(tag) || sha256(tag)` for use in
-    /// [`sha256t`](super::sha256t). It's provided for use with [`sha256t`](crate::sha256t).
+    /// Computes non-finalized hash of `sha256(tag) || sha256(tag)` for use in Bitcoin tagged hashes.
     pub const fn hash_tag(tag: &[u8]) -> Self {
         let hash = Hash::const_hash(tag);
         let mut buf = [0u8; 64];

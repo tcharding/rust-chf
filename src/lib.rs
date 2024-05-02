@@ -193,7 +193,7 @@ pub trait HashEngine: Clone + Default {
     /// used directly unless you really know what you're doing.
     fn midstate(&self) -> Self::Midstate;
 
-    /// Create a new [`HashEngine`] from a [`Midstate`].
+    /// Create a new [`HashEngine`] from a [`Self::Midstate`].
     ///
     /// Only use this function if you know what you are doing.
     fn from_midstate(midstate: Self::Midstate, length: usize) -> Self;
