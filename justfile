@@ -13,6 +13,10 @@ check:
 lint:
   cargo +$(cat ./nightly-version) clippy --workspace --all-targets --all-features -- --deny warnings
 
+# Format everything.
+fmt:
+  cargo +$(cat ./nightly-version) fmt --all
+
 # Check the formatting
 format:
   cargo +$(cat ./nightly-version) fmt --all --check
