@@ -127,7 +127,7 @@ pub mod sha512;
 pub mod sha512_256;
 pub mod siphash24;
 
-use core::{borrow, fmt, hash};
+use core::{convert, fmt, hash};
 
 pub use hmac::{Hmac, HmacEngine};
 
@@ -145,7 +145,7 @@ pub trait HashEngine: Clone + Default {
         + PartialOrd
         + Ord
         + hash::Hash
-        + borrow::Borrow<[u8]>;
+        + convert::AsRef<[u8]>;
 
     /// Byte array representing the internal state of the hash engine.
     type Midstate;
