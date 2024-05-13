@@ -45,19 +45,13 @@ macro_rules! hex_fmt_impl(
     );
 );
 
-/// Adds slicing traits implementations to a given type `$ty`
+/// Adds `AsRef` implementation to a given type `$ty`.
 #[macro_export]
-macro_rules! borrow_slice_impl(
+macro_rules! as_ref_impl(
     ($ty:ident) => (
-        $crate::borrow_slice_impl!($ty, );
+        $crate::as_ref_impl!($ty, );
     );
     ($ty:ident, $($gen:ident: $gent:ident),*) => (
-        impl<$($gen: $gent),*> $crate::_export::_core::borrow::Borrow<[u8]> for $ty<$($gen),*>  {
-            fn borrow(&self) -> &[u8] {
-                &self[..]
-            }
-        }
-
         impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8]> for $ty<$($gen),*>  {
             fn as_ref(&self) -> &[u8] {
                 &self[..]

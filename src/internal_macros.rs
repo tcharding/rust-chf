@@ -68,7 +68,7 @@ macro_rules! hash_trait_impls {
 
         $crate::internal_macros::arr_newtype_fmt_impl!($hash, $bits / 8);
         serde_impl!($hash, $bits / 8);
-        borrow_slice_impl!($hash);
+        as_ref_impl!($hash);
 
         impl $crate::_export::_core::convert::AsRef<[u8; $bits / 8]> for $hash {
             fn as_ref(&self) -> &[u8; $bits / 8] { &self.0 }

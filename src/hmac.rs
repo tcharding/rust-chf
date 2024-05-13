@@ -8,7 +8,6 @@
 //! Hash-based Message Authentication Code (HMAC).
 //!
 
-use core::borrow::Borrow;
 use core::{borrow, fmt, ops, str};
 
 use hex::DisplayHex;
@@ -212,10 +211,10 @@ impl<E: HashEngine> HmacEngine<E> {
 
         if key.len() > E::BLOCK_SIZE {
             let hash = <E as HashEngine>::hash(key);
-            for (b_i, b_h) in ipad.iter_mut().zip(hash.borrow()) {
+            for (b_i, b_h) in ipad.iter_mut().zip(hash.as_ref()) {
                 *b_i ^= *b_h;
             }
-            for (b_o, b_h) in opad.iter_mut().zip(hash.borrow()) {
+            for (b_o, b_h) in opad.iter_mut().zip(hash.as_ref()) {
                 *b_o ^= *b_h;
             }
         } else {
@@ -247,7 +246,7 @@ impl<E: HashEngine> HashEngine for HmacEngine<E> {
     #[inline]
     fn finalize(mut self) -> Self::Digest {
         let ihash = self.iengine.finalize();
-        self.oengine.input(ihash.borrow());
+        self.oengine.input(ihash.as_ref());
         self.oengine.finalize()
     }
 
