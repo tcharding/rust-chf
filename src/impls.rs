@@ -7,7 +7,7 @@
 
 use bitcoin_io::impl_write;
 
-use crate::{ripemd160, sha1, sha256, sha512, siphash24, HashEngine, HmacEngine};
+use crate::{ripemd160, sha1, sha256, sha256t, sha512, siphash24, HashEngine, HmacEngine};
 
 impl_write!(
     sha1::HashEngine,
@@ -77,6 +77,16 @@ impl<E: HashEngine> std::io::Write for HmacEngine<E> {
     #[inline]
     fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
 }
+
+impl_write!(
+    sha256t::HashEngine<T>,
+    |us: &mut sha256t::HashEngine<T>, buf| {
+        us.input(buf);
+        Ok(buf.len())
+    },
+    |_us| { Ok(()) },
+    T: crate::sha256t::Tag
+);
 
 #[cfg(test)]
 mod tests {

@@ -7,12 +7,45 @@ use core::marker::PhantomData;
 
 use crate::{sha256, HashEngine as _};
 
-type HashEngine = sha256::HashEngine;
+/// Engine to compute tagged SHA-256 hash function.
+#[derive(Clone)]
+pub struct HashEngine<T>(sha256::HashEngine, PhantomData<T>);
+
+impl<T: Tag> Default for HashEngine<T> {
+    fn default() -> Self { <T as Tag>::engine() }
+}
+
+impl<T: Tag> crate::HashEngine for HashEngine<T> {
+    type Digest = [u8; 32];
+    type Midstate = sha256::Midstate;
+    const BLOCK_SIZE: usize = sha256::BLOCK_SIZE;
+
+    #[inline]
+    fn new() -> Self { <T as Tag>::engine() }
+
+    #[inline]
+    fn input(&mut self, data: &[u8]) { self.0.input(data) }
+
+    #[inline]
+    fn n_bytes_hashed(&self) -> usize { self.0.n_bytes_hashed() }
+
+    #[inline]
+    fn finalize(self) -> Self::Digest { self.0.finalize() }
+
+    #[inline]
+    fn midstate(&self) -> Self::Midstate { self.0.midstate() }
+
+    #[inline]
+    fn from_midstate(midstate: sha256::Midstate, length: usize) -> HashEngine<T> {
+        let inner = sha256::HashEngine::from_midstate(midstate, length);
+        Self(inner, PhantomData)
+    }
+}
 
 /// Trait representing a tag that can be used as a context for SHA256t hashes.
-pub trait Tag {
+pub trait Tag: Clone {
     /// Returns a hash engine that is pre-tagged and is ready to be used for the data.
-    fn engine() -> sha256::HashEngine;
+    fn engine() -> HashEngine<Self>;
 }
 
 /// Output of the SHA256t hash function.
@@ -36,12 +69,12 @@ impl<T: Tag> Hash<T> {
     }
 
     /// Returns a hash engine that is ready to be used for data.
-    pub fn engine() -> HashEngine { <T as Tag>::engine() }
+    pub fn engine() -> HashEngine<T> { <T as Tag>::engine() }
 
     /// Creates a `Hash` from an `engine`.
     ///
     /// This is equivalent to calling `Hash::from_byte_array(engine.finalize())`.
-    pub fn from_engine(engine: HashEngine) -> Self {
+    pub fn from_engine(engine: HashEngine<T>) -> Self {
         let digest = engine.finalize();
         Self(digest, PhantomData)
     }
@@ -130,7 +163,8 @@ crate::internal_macros::hash_trait_impls!(256, T: Tag);
 
 #[cfg(test)]
 mod tests {
-    use crate::{sha256, sha256t};
+    use super::*;
+    use crate::sha256;
 
     const TEST_MIDSTATE: [u8; 32] = [
         156, 224, 228, 230, 124, 17, 108, 57, 56, 179, 202, 242, 195, 15, 80, 137, 211, 243, 147,
@@ -141,24 +175,20 @@ mod tests {
     #[cfg(feature = "alloc")]
     const HASH_ZERO: &str = "ed1382037800c9dd938dd8854f1a8863bcdeb6705069b4b56a66ec22519d5829";
 
-    #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-    pub struct TestHashTag;
+    #[derive(Clone)]
+    pub struct TestTag;
 
-    impl sha256t::Tag for TestHashTag {
-        fn engine() -> sha256::HashEngine {
-            // The TapRoot TapLeaf midstate.
+    impl Tag for TestTag {
+        fn engine() -> HashEngine<Self> {
             let midstate = sha256::Midstate::from_byte_array(TEST_MIDSTATE);
-            sha256::HashEngine::from_midstate(midstate, 64)
+            let inner = sha256::HashEngine::from_midstate(midstate, 64);
+            HashEngine(inner, PhantomData)
         }
     }
-
-    // We support manually implementing `Tag` and creating a tagged hash from it.
-    #[cfg(feature = "alloc")]
-    pub type TestHash = sha256t::Hash<TestHashTag>;
 
     #[test]
     #[cfg(feature = "alloc")]
     fn manually_created_sha256t_hash_type() {
-        assert_eq!(TestHash::hash(&[0]).to_string(), HASH_ZERO);
+        assert_eq!(Hash::<TestTag>::hash(&[0]).to_string(), HASH_ZERO);
     }
 }
