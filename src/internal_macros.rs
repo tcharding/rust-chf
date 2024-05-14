@@ -2,6 +2,51 @@
 
 //! Non-public macros
 
+/// Adds `AsRef` implementation to a given type `$ty`.
+macro_rules! as_ref_impl(
+    ($ty:ident) => (
+        $crate::internal_macros::as_ref_impl!($ty, );
+    );
+    ($ty:ident, $($gen:ident: $gent:ident),*) => (
+        impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8]> for $ty<$($gen),*>  {
+            fn as_ref(&self) -> &[u8] { &self[..] }
+        }
+    )
+);
+pub(crate) use as_ref_impl;
+
+/// Adds an implementation of the `HashEngine::input` method.
+macro_rules! engine_input_impl(
+    ($n:literal) => (
+        #[cfg(not(hashes_fuzz))]
+        fn input(&mut self, mut inp: &[u8]) {
+            while !inp.is_empty() {
+                let buf_idx = self.length % <Self as crate::HashEngine>::BLOCK_SIZE;
+                let rem_len = <Self as crate::HashEngine>::BLOCK_SIZE - buf_idx;
+                let write_len = $crate::_export::_core::cmp::min(rem_len, inp.len());
+
+                self.buffer[buf_idx..buf_idx + write_len]
+                    .copy_from_slice(&inp[..write_len]);
+                self.length += write_len;
+                if self.length % <Self as crate::HashEngine>::BLOCK_SIZE == 0 {
+                    self.process_block();
+                }
+                inp = &inp[write_len..];
+            }
+        }
+
+        #[cfg(hashes_fuzz)]
+        fn input(&mut self, inp: &[u8]) {
+            for c in inp {
+                self.buffer[0] ^= *c;
+            }
+            self.length += inp.len();
+        }
+    )
+);
+pub(crate) use engine_input_impl;
+
+/// Adds `fmt::{LowerHex, UpperHex, Display, Debug}` trait impls to `$ty`.
 macro_rules! arr_newtype_fmt_impl {
     ($ty:ident, $bytes:expr $(, $gen:ident: $gent:ident)*) => {
         impl<$($gen: $gent),*> $crate::_export::_core::fmt::LowerHex for $ty<$($gen),*> {
@@ -68,7 +113,7 @@ macro_rules! hash_trait_impls {
 
         $crate::internal_macros::arr_newtype_fmt_impl!(Hash, $bits / 8 $(, $gen: $gent)*);
         serde_impl!(Hash, $bits / 8 $(, $gen: $gent)*);
-        as_ref_impl!(Hash $(, $gen: $gent)*);
+        $crate::internal_macros::as_ref_impl!(Hash $(, $gen: $gent)*);
 
         impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8; $bits / 8]> for Hash<$($gen),*> {
             fn as_ref(&self) -> &[u8; $bits / 8] { &self.0 }
@@ -84,20 +129,15 @@ macro_rules! hash_trait_impls {
 }
 pub(crate) use hash_trait_impls;
 
-/// Creates a type called `Hash` and implements standard interface for it.
+/// Creates a type called `Hash` and implements the standard interface for it.
 ///
-/// The created type will have all standard derives, `Hash` impl and implementation of
-/// `internal_engine` returning default. The created type has a single field.
+/// The created type has a single private field, an array that is the digest bytes. The digest bytes
+/// can be accessed using the expected API for a byte array and includes all standard derives.
 ///
 /// Arguments:
 ///
 /// * `$bits` - the number of bits of the hash type
-/// * `$reverse` - `true` if the hash should be displayed backwards, `false` otherwise
 /// * `$doc` - doc string to put on the type
-/// * `$schemars` - a literal that goes into `schema_with`.
-///
-/// The `from_engine` free-standing function is still required with this macro. See the doc of
-/// [`hash_trait_impls`].
 macro_rules! hash_type {
     ($bits:expr, $doc:literal) => {
         #[doc = $doc]
@@ -165,6 +205,15 @@ macro_rules! hash_type {
 
             /// Returns a reference to the underlying byte array.
             pub fn as_byte_array(&self) -> &[u8; $bits / 8] { &self.0 }
+
+            /// Returns a reference to the underlying byte array as a slice.
+            #[inline]
+            pub fn as_bytes(&self) -> &[u8] { &self.0 }
+
+            /// Copies the underlying bytes into a new `Vec`.
+            #[cfg(feature = "alloc")]
+            #[inline]
+            pub fn to_bytes(&self) -> Vec<u8> { self.0.to_vec() }
 
             /// Returns an all zero hash.
             ///

@@ -2,7 +2,7 @@
 
 //! SHA-1 implementation.
 
-use core::{cmp, str};
+use core::str;
 
 use crate::HashEngine as _;
 
@@ -39,7 +39,7 @@ impl crate::HashEngine for HashEngine {
     #[inline]
     fn n_bytes_hashed(&self) -> usize { self.length }
 
-    engine_input_impl!(20);
+    crate::internal_macros::engine_input_impl!(20);
 
     #[inline]
     fn finalize(mut self) -> Self::Digest {

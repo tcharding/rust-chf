@@ -113,8 +113,6 @@ extern crate schemars;
 
 mod internal_macros;
 #[macro_use]
-mod util;
-#[macro_use]
 pub mod serde_macros;
 pub mod cmp;
 pub mod hmac;
