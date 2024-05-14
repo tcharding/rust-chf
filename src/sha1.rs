@@ -2,7 +2,7 @@
 
 //! SHA-1 implementation.
 
-use core::{cmp, str};
+use core::str;
 
 use crate::HashEngine as _;
 

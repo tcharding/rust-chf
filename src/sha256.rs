@@ -8,7 +8,7 @@ use core::arch::x86::*;
 use core::arch::x86_64::*;
 use core::ops::Index;
 use core::slice::SliceIndex;
-use core::{cmp, str};
+use core::str;
 
 use crate::{FromSliceError, HashEngine as _};
 
