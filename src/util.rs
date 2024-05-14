@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: CC0-1.0
 
 /// Adds `AsRef` implementation to a given type `$ty`.
-#[macro_export]
 macro_rules! as_ref_impl(
     ($ty:ident) => (
-        $crate::as_ref_impl!($ty, );
+        $crate::util::as_ref_impl!($ty, );
     );
     ($ty:ident, $($gen:ident: $gent:ident),*) => (
         impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8]> for $ty<$($gen),*>  {
@@ -12,6 +11,7 @@ macro_rules! as_ref_impl(
         }
     )
 );
+pub(crate) use as_ref_impl;
 
 macro_rules! engine_input_impl(
     ($n:literal) => (
