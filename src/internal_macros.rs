@@ -129,20 +129,15 @@ macro_rules! hash_trait_impls {
 }
 pub(crate) use hash_trait_impls;
 
-/// Creates a type called `Hash` and implements standard interface for it.
+/// Creates a type called `Hash` and implements the standard interface for it.
 ///
-/// The created type will have all standard derives, `Hash` impl and implementation of
-/// `internal_engine` returning default. The created type has a single field.
+/// The created type has a single private field, an array that is the digest bytes. The digest bytes
+/// can be accessed using the expected API for a byte array and includes all standard derives.
 ///
 /// Arguments:
 ///
 /// * `$bits` - the number of bits of the hash type
-/// * `$reverse` - `true` if the hash should be displayed backwards, `false` otherwise
 /// * `$doc` - doc string to put on the type
-/// * `$schemars` - a literal that goes into `schema_with`.
-///
-/// The `from_engine` free-standing function is still required with this macro. See the doc of
-/// [`hash_trait_impls`].
 macro_rules! hash_type {
     ($bits:expr, $doc:literal) => {
         #[doc = $doc]
