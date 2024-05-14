@@ -1,3 +1,8 @@
+# 0.3.0 - 2024-05-14
+
+* Rename `HashEngine` types to `Engine` [#10](https://github.com/tcharding/rust-chf/pull/10).
+* Also, rename `Hmac` and `HmacEngine` to be `hmac::Hash` and `hmac::Engine` respectively.
+
 # 0.2.1 - 2024-05-14
 
 * Update the README file to mention tagged hash module added in 0.2.0 release.
