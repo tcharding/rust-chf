@@ -13,6 +13,7 @@
 //! - RIPEMD-160
 //! - SipHash-2-4
 //! - HMAC-x (where x is any of the hash functions above).
+//! - Domain separation using tagged SHA-256.
 //!
 //! ## Commonly used operations
 //!
@@ -122,6 +123,7 @@ mod impls;
 pub mod ripemd160;
 pub mod sha1;
 pub mod sha256;
+pub mod sha256t;
 pub mod sha384;
 pub mod sha512;
 pub mod sha512_256;

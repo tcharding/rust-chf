@@ -55,8 +55,8 @@ pub(crate) use arr_newtype_fmt_impl;
 /// `internal_new` is required so that types with more than one field are constructible.
 /// `internal_engine` is required to initialize the engine for given hash type.
 macro_rules! hash_trait_impls {
-    ($hash:ident, $bits:expr) => {
-        impl $crate::_export::_core::str::FromStr for $hash {
+    ($bits:expr $(, $gen:ident: $gent:ident)*) => {
+        impl<$($gen: $gent),*> $crate::_export::_core::str::FromStr for Hash<$($gen),*> {
             type Err = $crate::hex::HexToArrayError;
             fn from_str(s: &str) -> $crate::_export::_core::result::Result<Self, Self::Err> {
                 use $crate::hex::FromHex;
@@ -66,17 +66,15 @@ macro_rules! hash_trait_impls {
             }
         }
 
-        $crate::internal_macros::arr_newtype_fmt_impl!($hash, $bits / 8);
-        serde_impl!($hash, $bits / 8);
-        as_ref_impl!($hash);
+        $crate::internal_macros::arr_newtype_fmt_impl!(Hash, $bits / 8 $(, $gen: $gent)*);
+        serde_impl!(Hash, $bits / 8 $(, $gen: $gent)*);
+        as_ref_impl!(Hash $(, $gen: $gent)*);
 
-        impl $crate::_export::_core::convert::AsRef<[u8; $bits / 8]> for $hash {
+        impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8; $bits / 8]> for Hash<$($gen),*> {
             fn as_ref(&self) -> &[u8; $bits / 8] { &self.0 }
         }
 
-        impl<I: $crate::_export::_core::slice::SliceIndex<[u8]>>
-            $crate::_export::_core::ops::Index<I> for $hash
-        {
+        impl<I: $crate::_export::_core::slice::SliceIndex<[u8]> $(, $gen: $gent)*> $crate::_export::_core::ops::Index<I> for Hash<$($gen),*> {
             type Output = I::Output;
 
             #[inline]
@@ -192,7 +190,7 @@ macro_rules! hash_type {
             }
         }
 
-        crate::internal_macros::hash_trait_impls!(Hash, $bits);
+        crate::internal_macros::hash_trait_impls!($bits);
     };
 }
 pub(crate) use hash_type;

@@ -8,7 +8,7 @@
 //! Hash-based Message Authentication Code (HMAC).
 //!
 
-use core::{borrow, fmt, ops, str};
+use core::{fmt, ops, str};
 
 use hex::DisplayHex;
 
@@ -151,8 +151,8 @@ impl<const N: usize> ops::Index<ops::RangeFull> for Hmac<N> {
     fn index(&self, index: ops::RangeFull) -> &[u8] { &self.0[index] }
 }
 
-impl<const N: usize> borrow::Borrow<[u8]> for Hmac<N> {
-    fn borrow(&self) -> &[u8] { &self.0 }
+impl<const N: usize> AsRef<[u8]> for Hmac<N> {
+    fn as_ref(&self) -> &[u8] { &self.0 }
 }
 
 #[cfg(feature = "serde")]
