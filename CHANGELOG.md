@@ -1,3 +1,7 @@
+# 0.2.1 - 2024-05-14
+
+* Update the README file to mention tagged hash module added in 0.2.0 release.
+
 # 0.2.0 - 2024-05-14
 
 * Add tagged SHA-256 hash module [#4](https://github.com/tcharding/rust-chf/pull/4)
