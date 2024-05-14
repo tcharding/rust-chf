@@ -8,9 +8,7 @@ macro_rules! as_ref_impl(
     );
     ($ty:ident, $($gen:ident: $gent:ident),*) => (
         impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8]> for $ty<$($gen),*>  {
-            fn as_ref(&self) -> &[u8] {
-                &self[..]
-            }
+            fn as_ref(&self) -> &[u8] { &self[..] }
         }
     )
 );
