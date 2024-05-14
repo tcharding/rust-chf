@@ -16,7 +16,7 @@ checksum = "340e09e8399c7bd8912f495af6aa58bea0c9214773417ffaa8f6460f93aaee56"
 
 [[package]]
 name = "chf"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "bitcoin-io",
  "hex-conservative",
