@@ -12,7 +12,7 @@ use core::{fmt, ops, str};
 
 use hex::DisplayHex;
 
-use crate::FromSliceError;
+use crate::{FromSliceError, HashEngine};
 
 /// A hash computed from a RFC 2104 HMAC. Parameterized by the size of the underlying hash function.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,7 +22,7 @@ impl<const N: usize> Hash<N> {
     /// Returns a hash engine that is ready to be used for the data.
     pub fn engine<E>() -> E
     where
-        E: crate::HashEngine<Digest = [u8; N]>,
+        E: HashEngine<Digest = [u8; N]>,
     {
         E::new()
     }
@@ -32,7 +32,7 @@ impl<const N: usize> Hash<N> {
     /// This is equivalent to calling `Hash::from_byte_array(engine.finalize())`.
     pub fn from_engine<E>(engine: E) -> Self
     where
-        E: crate::HashEngine<Digest = [u8; N]>,
+        E: HashEngine<Digest = [u8; N]>,
     {
         let digest = engine.finalize();
         Self::from_byte_array(digest)
@@ -183,7 +183,7 @@ impl<'de, const N: usize> crate::serde::Deserialize<'de> for Hash<N> {
 }
 
 /// Pair of underlying hash midstates which represent the current state of an `HashEngine`.
-pub struct MidState<E: crate::HashEngine> {
+pub struct MidState<E: HashEngine> {
     /// Midstate of the inner hash engine
     pub inner: E::Midstate,
     /// Midstate of the outer hash engine
@@ -192,16 +192,16 @@ pub struct MidState<E: crate::HashEngine> {
 
 /// Pair of underlying hash engines, used for the inner and outer hash of HMAC.
 #[derive(Clone)]
-pub struct HashEngine<E: crate::HashEngine> {
+pub struct Engine<E: HashEngine> {
     iengine: E,
     oengine: E,
 }
 
-impl<E: crate::HashEngine> Default for HashEngine<E> {
-    fn default() -> Self { HashEngine::new(&[]) }
+impl<E: HashEngine> Default for Engine<E> {
+    fn default() -> Self { Engine::new(&[]) }
 }
 
-impl<E: crate::HashEngine> HashEngine<E> {
+impl<E: HashEngine> Engine<E> {
     /// Constructs a new keyed HMAC from `key`.
     ///
     /// We only support hash engines whose internal block sizes are ≤ 128 bytes.
@@ -209,15 +209,15 @@ impl<E: crate::HashEngine> HashEngine<E> {
     /// # Panics
     ///
     /// Larger block sizes will result in a panic.
-    pub fn new(key: &[u8]) -> HashEngine<E> {
+    pub fn new(key: &[u8]) -> Engine<E> {
         debug_assert!(E::BLOCK_SIZE <= 128);
 
         let mut ipad = [0x36u8; 128];
         let mut opad = [0x5cu8; 128];
-        let mut ret = HashEngine { iengine: E::default(), oengine: E::default() };
+        let mut ret = Engine { iengine: E::default(), oengine: E::default() };
 
         if key.len() > E::BLOCK_SIZE {
-            let hash = <E as crate::HashEngine>::hash(key);
+            let hash = <E as HashEngine>::hash(key);
             for (b_i, b_h) in ipad.iter_mut().zip(hash.as_ref()) {
                 *b_i ^= *b_h;
             }
@@ -239,7 +239,7 @@ impl<E: crate::HashEngine> HashEngine<E> {
     }
 }
 
-impl<E: crate::HashEngine> crate::HashEngine for HashEngine<E> {
+impl<E: HashEngine> HashEngine for Engine<E> {
     type Digest = E::Digest;
     type Midstate = Midstate<E>;
     const BLOCK_SIZE: usize = E::BLOCK_SIZE;
@@ -264,7 +264,7 @@ impl<E: crate::HashEngine> crate::HashEngine for HashEngine<E> {
 
     #[inline]
     fn from_midstate(midstate: Midstate<E>, length: usize) -> Self {
-        HashEngine {
+        Engine {
             iengine: E::from_midstate(midstate.inner, length),
             oengine: E::from_midstate(midstate.outer, length),
         }
@@ -274,7 +274,7 @@ impl<E: crate::HashEngine> crate::HashEngine for HashEngine<E> {
 /// Pair of underlying hash engine midstates which represent the current state of an `HashEngine`.
 // TODO: Use derives?
 //#[derive(Copy, Clone, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
-pub struct Midstate<E: crate::HashEngine> {
+pub struct Midstate<E: HashEngine> {
     /// Midstate of the inner hash engine.
     pub inner: E::Midstate,
     /// Midstate of the outer hash engine.
@@ -402,7 +402,7 @@ mod tests {
         ];
 
         for test in tests {
-            let mut engine = HashEngine::<sha256::HashEngine>::new(&test.key);
+            let mut engine = Engine::<sha256::Engine>::new(&test.key);
             engine.input(&test.input);
             let hash = engine.finalize();
             assert_eq!(&hash[..], &test.output[..]);
@@ -413,8 +413,9 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn hmac_sha512_serde() {
-        use crate::hmac;
         use serde_test::{assert_tokens, Configure, Token};
+
+        use crate::hmac;
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 64] = [
@@ -445,7 +446,7 @@ mod tests {
         use super::*;
         use crate::sha256;
 
-        let engine: HashEngine<sha256::HashEngine> = Default::default();
+        let engine: Engine<sha256::Engine> = Default::default();
         let hmac = Hash::from_engine(engine);
         let hint = hmac.0.iter().size_hint().1;
 
@@ -457,11 +458,11 @@ mod tests {
 mod benches {
     use test::Bencher;
 
-    use crate::{sha256, HashEngine, HashEngine};
+    use crate::{hmac, sha256, HashEngine};
 
     #[bench]
     pub fn hmac_sha256_10(bh: &mut Bencher) {
-        let mut engine: HashEngine<sha256::HashEngine> = Default::default();
+        let mut engine: hmac::Engine<sha256::Engine> = Default::default();
         let bytes = [1u8; 10];
         bh.iter(|| {
             engine.input(&bytes);
@@ -471,7 +472,7 @@ mod benches {
 
     #[bench]
     pub fn hmac_sha256_1k(bh: &mut Bencher) {
-        let mut engine: HashEngine<sha256::HashEngine> = Default::default();
+        let mut engine: hmac::Engine<sha256::Engine> = Default::default();
         let bytes = [1u8; 1024];
         bh.iter(|| {
             engine.input(&bytes);
@@ -481,7 +482,7 @@ mod benches {
 
     #[bench]
     pub fn hmac_sha256_64k(bh: &mut Bencher) {
-        let mut engine: HashEngine<sha256::HashEngine> = Default::default();
+        let mut engine: hmac::Engine<sha256::Engine> = Default::default();
         let bytes = [1u8; 65536];
         bh.iter(|| {
             engine.input(&bytes);

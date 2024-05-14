@@ -5,17 +5,17 @@
 use core::cmp;
 use core::marker::PhantomData;
 
-use crate::{sha256, HashEngine as _};
+use crate::{sha256, HashEngine};
 
 /// Engine to compute tagged SHA-256 hash function.
 #[derive(Clone)]
-pub struct HashEngine<T>(sha256::HashEngine, PhantomData<T>);
+pub struct Engine<T>(sha256::Engine, PhantomData<T>);
 
-impl<T: Tag> Default for HashEngine<T> {
+impl<T: Tag> Default for Engine<T> {
     fn default() -> Self { <T as Tag>::engine() }
 }
 
-impl<T: Tag> crate::HashEngine for HashEngine<T> {
+impl<T: Tag> HashEngine for Engine<T> {
     type Digest = [u8; 32];
     type Midstate = sha256::Midstate;
     const BLOCK_SIZE: usize = sha256::BLOCK_SIZE;
@@ -36,8 +36,8 @@ impl<T: Tag> crate::HashEngine for HashEngine<T> {
     fn midstate(&self) -> Self::Midstate { self.0.midstate() }
 
     #[inline]
-    fn from_midstate(midstate: sha256::Midstate, length: usize) -> HashEngine<T> {
-        let inner = sha256::HashEngine::from_midstate(midstate, length);
+    fn from_midstate(midstate: sha256::Midstate, length: usize) -> Engine<T> {
+        let inner = sha256::Engine::from_midstate(midstate, length);
         Self(inner, PhantomData)
     }
 }
@@ -45,7 +45,7 @@ impl<T: Tag> crate::HashEngine for HashEngine<T> {
 /// Trait representing a tag that can be used as a context for SHA256t hashes.
 pub trait Tag: Clone {
     /// Returns a hash engine that is pre-tagged and is ready to be used for the data.
-    fn engine() -> HashEngine<Self>;
+    fn engine() -> Engine<Self>;
 }
 
 /// Output of the SHA256t hash function.
@@ -69,12 +69,12 @@ impl<T: Tag> Hash<T> {
     }
 
     /// Returns a hash engine that is ready to be used for data.
-    pub fn engine() -> HashEngine<T> { <T as Tag>::engine() }
+    pub fn engine() -> Engine<T> { <T as Tag>::engine() }
 
     /// Creates a `Hash` from an `engine`.
     ///
     /// This is equivalent to calling `Hash::from_byte_array(engine.finalize())`.
-    pub fn from_engine(engine: HashEngine<T>) -> Self {
+    pub fn from_engine(engine: Engine<T>) -> Self {
         let digest = engine.finalize();
         Self(digest, PhantomData)
     }
@@ -186,10 +186,10 @@ mod tests {
     pub struct TestTag;
 
     impl Tag for TestTag {
-        fn engine() -> HashEngine<Self> {
+        fn engine() -> Engine<Self> {
             let midstate = sha256::Midstate::from_byte_array(TEST_MIDSTATE);
-            let inner = sha256::HashEngine::from_midstate(midstate, 64);
-            HashEngine(inner, PhantomData)
+            let inner = sha256::Engine::from_midstate(midstate, 64);
+            Engine(inner, PhantomData)
         }
     }
 

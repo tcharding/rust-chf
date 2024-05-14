@@ -4,7 +4,7 @@
 
 use core::str;
 
-use crate::HashEngine as _;
+use crate::HashEngine;
 
 crate::internal_macros::hash_type! {
     160,
@@ -15,15 +15,15 @@ const BLOCK_SIZE: usize = 64;
 
 /// Engine to compute SHA-1 hash function.
 #[derive(Clone)]
-pub struct HashEngine {
+pub struct Engine {
     buffer: [u8; BLOCK_SIZE],
     h: [u32; 5],
     length: usize,
 }
 
-impl Default for HashEngine {
+impl Default for Engine {
     fn default() -> Self {
-        HashEngine {
+        Engine {
             h: [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0],
             length: 0,
             buffer: [0; BLOCK_SIZE],
@@ -31,7 +31,7 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
+impl HashEngine for Engine {
     type Digest = [u8; 20];
     type Midstate = [u8; 20];
     const BLOCK_SIZE: usize = BLOCK_SIZE;
@@ -79,7 +79,7 @@ impl crate::HashEngine for HashEngine {
     }
 
     #[inline]
-    fn from_midstate(midstate: Self::Midstate, length: usize) -> HashEngine {
+    fn from_midstate(midstate: Self::Midstate, length: usize) -> Engine {
         assert!(length % BLOCK_SIZE == 0, "length is no multiple of the block size");
 
         let mut ret = [0; 5];
@@ -87,11 +87,11 @@ impl crate::HashEngine for HashEngine {
             *ret_val = u32::from_be_bytes(midstate_bytes.try_into().expect("4 byte slice"));
         }
 
-        HashEngine { buffer: [0; BLOCK_SIZE], h: ret, length }
+        Engine { buffer: [0; BLOCK_SIZE], h: ret, length }
     }
 }
 
-impl HashEngine {
+impl Engine {
     // Basic unoptimized algorithm from Wikipedia
     fn process_block(&mut self) {
         debug_assert_eq!(self.buffer.len(), BLOCK_SIZE);
@@ -197,7 +197,7 @@ mod tests {
             assert_eq!(&hash.to_string(), &test.output_str);
 
             // Hash through engine, checking that we can input byte by byte
-            let mut engine = sha1::HashEngine::new();
+            let mut engine = sha1::Engine::new();
             for ch in test.input.as_bytes() {
                 engine.input(&[*ch]);
             }

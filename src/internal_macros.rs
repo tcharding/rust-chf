@@ -162,12 +162,12 @@ macro_rules! hash_type {
             }
 
             /// Returns a hash engine that is ready to be used for data.
-            pub fn engine() -> HashEngine { HashEngine::new() }
+            pub fn engine() -> Engine { Engine::new() }
 
             /// Creates a `Hash` from an `engine`.
             ///
             /// This is equivalent to calling `Hash::from_byte_array(engine.finalize())`.
-            pub fn from_engine(engine: HashEngine) -> Self {
+            pub fn from_engine(engine: Engine) -> Self {
                 let digest = engine.finalize();
                 Self(digest)
             }

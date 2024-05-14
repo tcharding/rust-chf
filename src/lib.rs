@@ -36,7 +36,7 @@
 //! #[cfg(std)]
 //! # fn main() -> std::io::Result<()> {
 //! let mut reader: &[u8] = b"hello"; // in real code, this could be a `File` or `TcpStream`
-//! let mut engine = sha256::HashEngine::default();
+//! let mut engine = sha256::Engine::default();
 //! std::io::copy(&mut reader, &mut engine)?;
 //! let hash = sha256::Hash::from_engine(engine);
 //! # Ok(())
@@ -58,7 +58,7 @@
 //! let mut part1: &[u8] = b"hello";
 //! let mut part2: &[u8] = b" ";
 //! let mut part3: &[u8] = b"world";
-//! let mut engine = sha256::HashEngine::default();
+//! let mut engine = sha256::Engine::default();
 //! engine.write_all(part1)?;
 //! engine.write_all(part2)?;
 //! engine.write_all(part3)?;
