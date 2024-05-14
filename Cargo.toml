@@ -1,6 +1,6 @@
 [package]
 name = "chf"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Andrew Poelstra <apoelstra@wpsoftware.net>"]
 license = "CC0-1.0"
 # TODO: Move this crate to `github.com/rust-bitcoin`.

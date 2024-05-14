@@ -11,6 +11,7 @@ functions. At the moment this includes:
  - RIPEMD-160
  - SipHash-2-4
  - HMAC-x (where x is any of the hash functions above).
+ - Domain separation using tagged SHA-256.
 
 ## Relation to `bitcoin_hashes`
 
