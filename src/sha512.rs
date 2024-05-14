@@ -4,7 +4,7 @@
 
 use core::str;
 
-use crate::HashEngine as _;
+use crate::HashEngine;
 
 crate::internal_macros::hash_type! {
     512,
@@ -15,16 +15,16 @@ pub(crate) const BLOCK_SIZE: usize = 128;
 
 /// Engine to compute SHA-512 hash function.
 #[derive(Clone)]
-pub struct HashEngine {
+pub struct Engine {
     h: [u64; 8],
     length: usize,
     buffer: [u8; BLOCK_SIZE],
 }
 
-impl Default for HashEngine {
+impl Default for Engine {
     #[rustfmt::skip]
     fn default() -> Self {
-        HashEngine {
+        Engine {
             h: [
                 0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
                 0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179,
@@ -35,11 +35,11 @@ impl Default for HashEngine {
     }
 }
 
-impl HashEngine {
-    /// Constructs a hash engine suitable for use inside the default `sha512_256::HashEngine`.
+impl Engine {
+    /// Constructs a hash engine suitable for use inside the default `sha512_256::Engine`.
     #[rustfmt::skip]
     pub(crate) fn sha512_256() -> Self {
-        HashEngine {
+        Engine {
             h: [
                 0x22312194fc2bf72c, 0x9f555fa3c84c64c2, 0x2393b86b6f53b151, 0x963877195940eabd,
                 0x96283ee2a88effe3, 0xbe5e1e2553863992, 0x2b0199fc2c85b8aa, 0x0eb72ddc81c52ca2,
@@ -49,10 +49,10 @@ impl HashEngine {
         }
     }
 
-    /// Constructs a hash engine suitable for use inside the default `sha384::HashEngine`.
+    /// Constructs a hash engine suitable for use inside the default `sha384::Engine`.
     #[rustfmt::skip]
     pub(crate) fn sha384() -> Self {
-        HashEngine {
+        Engine {
             h: [
                 0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
                 0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4,
@@ -63,7 +63,7 @@ impl HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
+impl HashEngine for Engine {
     type Digest = [u8; 64];
     type Midstate = [u8; 64];
     const BLOCK_SIZE: usize = BLOCK_SIZE;
@@ -120,7 +120,7 @@ impl crate::HashEngine for HashEngine {
     }
 
     #[inline]
-    fn from_midstate(midstate: Self::Midstate, length: usize) -> HashEngine {
+    fn from_midstate(midstate: Self::Midstate, length: usize) -> Engine {
         assert!(length % BLOCK_SIZE == 0, "length is no multiple of the block size");
 
         let mut ret = [0; 8];
@@ -128,7 +128,7 @@ impl crate::HashEngine for HashEngine {
             *ret_val = u64::from_be_bytes(midstate_bytes.try_into().expect("4 byte slice"));
         }
 
-        HashEngine { buffer: [0; BLOCK_SIZE], h: ret, length }
+        Engine { buffer: [0; BLOCK_SIZE], h: ret, length }
     }
 }
 
@@ -199,7 +199,7 @@ mod fast_hash {
     );
 }
 
-impl HashEngine {
+impl Engine {
     // Algorithm copied from libsecp256k1
     pub(crate) fn process_block(&mut self) {
         debug_assert_eq!(self.buffer.len(), BLOCK_SIZE);
@@ -319,7 +319,8 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{sha512, HashEngine};
+        use super::*;
+        use crate::sha512;
 
         #[derive(Clone)]
         struct Test {

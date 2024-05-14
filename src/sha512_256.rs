@@ -9,7 +9,7 @@
 
 use core::str;
 
-use crate::{sha512, HashEngine as _};
+use crate::{sha512, HashEngine};
 
 crate::internal_macros::hash_type! {
     256,
@@ -23,16 +23,16 @@ crate::internal_macros::hash_type! {
 /// produces an entirely different hash compared to sha512. More information at
 /// <https://eprint.iacr.org/2010/548.pdf>.
 #[derive(Clone)]
-pub struct HashEngine(sha512::HashEngine);
+pub struct Engine(sha512::Engine);
 
-impl Default for HashEngine {
+impl Default for Engine {
     #[rustfmt::skip]
     fn default() -> Self {
-        HashEngine(sha512::HashEngine::sha512_256())
+        Engine(sha512::Engine::sha512_256())
     }
 }
 
-impl crate::HashEngine for HashEngine {
+impl HashEngine for Engine {
     type Digest = [u8; 32];
     type Midstate = [u8; 64]; // SHA-512 midstate.
     const BLOCK_SIZE: usize = sha512::BLOCK_SIZE;
@@ -55,8 +55,8 @@ impl crate::HashEngine for HashEngine {
     fn midstate(&self) -> [u8; 64] { self.0.midstate() }
 
     #[inline]
-    fn from_midstate(midstate: [u8; 64], length: usize) -> HashEngine {
-        HashEngine(sha512::HashEngine::from_midstate(midstate, length))
+    fn from_midstate(midstate: [u8; 64], length: usize) -> Engine {
+        Engine(sha512::Engine::from_midstate(midstate, length))
     }
 }
 

@@ -10,7 +10,7 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::str;
 
-use crate::{FromSliceError, HashEngine as _};
+use crate::{FromSliceError, HashEngine};
 
 crate::internal_macros::hash_type! {
     256,
@@ -22,15 +22,15 @@ pub const BLOCK_SIZE: usize = 64;
 
 /// Engine to compute SHA-256 hash function.
 #[derive(Clone)]
-pub struct HashEngine {
+pub struct Engine {
     buffer: [u8; BLOCK_SIZE],
     h: [u32; 8],
     length: usize,
 }
 
-impl Default for HashEngine {
+impl Default for Engine {
     fn default() -> Self {
-        HashEngine {
+        Engine {
             h: [
                 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
                 0x5be0cd19,
@@ -41,7 +41,7 @@ impl Default for HashEngine {
     }
 }
 
-impl crate::HashEngine for HashEngine {
+impl HashEngine for Engine {
     type Digest = [u8; 32];
     type Midstate = Midstate;
     const BLOCK_SIZE: usize = BLOCK_SIZE;
@@ -101,7 +101,7 @@ impl crate::HashEngine for HashEngine {
     }
 
     #[inline]
-    fn from_midstate(midstate: Midstate, length: usize) -> HashEngine {
+    fn from_midstate(midstate: Midstate, length: usize) -> Engine {
         assert!(length % BLOCK_SIZE == 0, "length is no multiple of the block size");
 
         let mut ret = [0; 8];
@@ -109,7 +109,7 @@ impl crate::HashEngine for HashEngine {
             *ret_val = u32::from_be_bytes(midstate_bytes.try_into().expect("4 byte slice"));
         }
 
-        HashEngine { buffer: [0; BLOCK_SIZE], h: ret, length }
+        Engine { buffer: [0; BLOCK_SIZE], h: ret, length }
     }
 }
 
@@ -425,13 +425,13 @@ impl Midstate {
     }
 }
 
-impl HashEngine {
-    /// Create a new [`HashEngine`] from a [`Midstate`].
+impl Engine {
+    /// Create a new [`Engine`] from a [`Midstate`].
     ///
     /// # Panics
     ///
     /// If `length` is not a multiple of the block size.
-    pub fn from_midstate(midstate: Midstate, length: usize) -> HashEngine {
+    pub fn from_midstate(midstate: Midstate, length: usize) -> Engine {
         assert!(length % BLOCK_SIZE == 0, "length is no multiple of the block size");
 
         let mut ret = [0; 8];
@@ -439,7 +439,7 @@ impl HashEngine {
             *ret_val = u32::from_be_bytes(midstate_bytes.try_into().expect("4 byte slice"));
         }
 
-        HashEngine { buffer: [0; BLOCK_SIZE], h: ret, length }
+        Engine { buffer: [0; BLOCK_SIZE], h: ret, length }
     }
 
     fn process_block(&mut self) {
@@ -872,7 +872,7 @@ mod tests {
             assert_eq!(&hash.to_string(), &test.output_str);
 
             // Hash through engine, checking that we can input byte by byte
-            let mut engine = sha256::HashEngine::new();
+            let mut engine = sha256::Engine::new();
             for ch in test.input.as_bytes() {
                 engine.input(&[*ch]);
             }
@@ -894,7 +894,7 @@ mod tests {
     #[rustfmt::skip]
     fn midstate() {
         // Test vector obtained by doing an asset issuance on Elements
-        let mut engine = sha256::HashEngine::new();
+        let mut engine = sha256::Engine::new();
         // sha256dhash of outpoint
         // 73828cbc65fd68ab78dc86992b76ae50ae2bf8ceedbe8de0483172f0886219f7:0
         engine.input(&[
@@ -920,7 +920,7 @@ mod tests {
     #[test]
     fn engine_with_state() {
         let mut engine = sha256::Hash::engine();
-        let midstate_engine = sha256::HashEngine::from_midstate(engine.midstate(), 0);
+        let midstate_engine = sha256::Engine::from_midstate(engine.midstate(), 0);
         // Fresh engine and engine initialized with fresh state should have same state
         assert_eq!(engine.h, midstate_engine.h);
 
@@ -936,7 +936,7 @@ mod tests {
         for data in data_vec {
             let mut engine = engine.clone();
             let mut midstate_engine =
-                sha256::HashEngine::from_midstate(engine.midstate(), engine.length);
+                sha256::Engine::from_midstate(engine.midstate(), engine.length);
             assert_eq!(engine.h, midstate_engine.h);
             assert_eq!(engine.length, midstate_engine.length);
             engine.input(&data);
@@ -965,7 +965,7 @@ mod tests {
             0x8f, 0xf1, 0xf7, 0xa9, 0xd5, 0x69, 0x09, 0x59,
         ];
         let midstate_engine =
-            sha256::HashEngine::from_midstate(sha256::Midstate::from_byte_array(MIDSTATE), 64);
+            sha256::Engine::from_midstate(sha256::Midstate::from_byte_array(MIDSTATE), 64);
         let hash = sha256::Hash::from_engine(midstate_engine);
         assert_eq!(hash, sha256::Hash(HASH_EXPECTED));
     }
