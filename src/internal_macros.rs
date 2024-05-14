@@ -46,6 +46,7 @@ macro_rules! engine_input_impl(
 );
 pub(crate) use engine_input_impl;
 
+/// Adds `fmt::{LowerHex, UpperHex, Display, Debug}` trait impls to `$ty`.
 macro_rules! arr_newtype_fmt_impl {
     ($ty:ident, $bytes:expr $(, $gen:ident: $gent:ident)*) => {
         impl<$($gen: $gent),*> $crate::_export::_core::fmt::LowerHex for $ty<$($gen),*> {
