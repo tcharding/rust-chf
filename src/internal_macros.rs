@@ -206,6 +206,15 @@ macro_rules! hash_type {
             /// Returns a reference to the underlying byte array.
             pub fn as_byte_array(&self) -> &[u8; $bits / 8] { &self.0 }
 
+            /// Returns a reference to the underlying byte array as a slice.
+            #[inline]
+            pub fn as_bytes(&self) -> &[u8] { &self.0 }
+
+            /// Copies the underlying bytes into a new `Vec`.
+            #[cfg(feature = "alloc")]
+            #[inline]
+            pub fn to_bytes(&self) -> Vec<u8> { self.0.to_vec() }
+
             /// Returns an all zero hash.
             ///
             /// An all zeros hash is a made up construct because there is not a known input that can
