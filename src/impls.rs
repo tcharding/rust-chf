@@ -7,7 +7,7 @@
 
 use bitcoin_io::impl_write;
 
-use crate::{ripemd160, sha1, sha256, sha256t, sha512, siphash24, HashEngine, HmacEngine};
+use crate::{hmac, ripemd160, sha1, sha256, sha256t, sha512, siphash24, HashEngine as _};
 
 impl_write!(
     sha1::HashEngine,
@@ -54,7 +54,7 @@ impl_write!(
     |_us| { Ok(()) }
 );
 
-impl<E: HashEngine> bitcoin_io::Write for HmacEngine<E> {
+impl<E: crate::HashEngine> bitcoin_io::Write for hmac::HashEngine<E> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, bitcoin_io::Error> {
         use crate::HashEngine as _;
@@ -67,7 +67,7 @@ impl<E: HashEngine> bitcoin_io::Write for HmacEngine<E> {
 }
 
 #[cfg(feature = "std")]
-impl<E: HashEngine> std::io::Write for HmacEngine<E> {
+impl<E: crate::HashEngine> std::io::Write for hmac::HashEngine<E> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.input(buf);
@@ -92,7 +92,7 @@ impl_write!(
 mod tests {
     use bitcoin_io::Write;
 
-    use crate::{ripemd160, sha1, sha256, sha512, siphash24, HashEngine as _, Hmac, HmacEngine};
+    use crate::{hmac, ripemd160, sha1, sha256, sha512, siphash24, HashEngine as _};
 
     macro_rules! write_test {
         ($mod:ident, $exp_empty:expr, $exp_256:expr, $exp_64k:expr,) => {
@@ -151,24 +151,24 @@ mod tests {
 
     #[test]
     fn hmac() {
-        let mut engine = HmacEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = hmac::HashEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[]).unwrap();
         assert_eq!(
-            format!("{}", Hmac::from_engine(engine)),
+            format!("{}", hmac::Hash::from_engine(engine)),
             "bf5515149cf797955c4d3194cca42472883281951697c8375d9d9b107f384225"
         );
 
-        let mut engine = HmacEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = hmac::HashEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[1; 256]).unwrap();
         assert_eq!(
-            format!("{}", Hmac::from_engine(engine)),
+            format!("{}", hmac::Hash::from_engine(engine)),
             "59c9aca10c81c73cb4c196d94db741b6bf2050e0153d5a45f2526bff34675ac5"
         );
 
-        let mut engine = HmacEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
+        let mut engine = hmac::HashEngine::<sha256::HashEngine>::new(&[0xde, 0xad, 0xbe, 0xef]);
         engine.write_all(&[99; 64000]).unwrap();
         assert_eq!(
-            format!("{}", Hmac::from_engine(engine)),
+            format!("{}", hmac::Hash::from_engine(engine)),
             "30df499717415a395379a1eaabe50038036e4abb5afc94aa55c952f4aa57be08"
         );
     }

@@ -129,8 +129,6 @@ pub mod siphash24;
 
 use core::{convert, fmt, hash};
 
-pub use hmac::{Hmac, HmacEngine};
-
 /// A hashing engine which bytes can be serialized into.
 pub trait HashEngine: Clone + Default {
     /// The digest returned by this hash engine.
