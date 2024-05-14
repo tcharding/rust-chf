@@ -49,7 +49,7 @@ impl crate::HashEngine for HashEngine {
     #[inline]
     fn n_bytes_hashed(&self) -> usize { self.length }
 
-    engine_input_impl!(32);
+    crate::internal_macros::engine_input_impl!(32);
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
@@ -126,7 +126,7 @@ pub struct Midstate(pub [u8; 32]);
 
 crate::internal_macros::arr_newtype_fmt_impl!(Midstate, 32);
 serde_impl!(Midstate, 32);
-as_ref_impl!(Midstate);
+crate::internal_macros::as_ref_impl!(Midstate);
 
 impl<I: SliceIndex<[u8]>> Index<I> for Midstate {
     type Output = I::Output;

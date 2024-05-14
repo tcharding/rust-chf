@@ -71,7 +71,7 @@ impl crate::HashEngine for HashEngine {
     #[inline]
     fn n_bytes_hashed(&self) -> usize { self.length }
 
-    engine_input_impl!(64);
+    crate::internal_macros::engine_input_impl!(64);
 
     #[cfg(not(hashes_fuzz))]
     #[inline]
