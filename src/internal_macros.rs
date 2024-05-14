@@ -21,14 +21,14 @@ macro_rules! engine_input_impl(
         #[cfg(not(hashes_fuzz))]
         fn input(&mut self, mut inp: &[u8]) {
             while !inp.is_empty() {
-                let buf_idx = self.length % <Self as crate::HashEngine>::BLOCK_SIZE;
-                let rem_len = <Self as crate::HashEngine>::BLOCK_SIZE - buf_idx;
+                let buf_idx = self.length % <Self as $crate::HashEngine>::BLOCK_SIZE;
+                let rem_len = <Self as $crate::HashEngine>::BLOCK_SIZE - buf_idx;
                 let write_len = $crate::_export::_core::cmp::min(rem_len, inp.len());
 
                 self.buffer[buf_idx..buf_idx + write_len]
                     .copy_from_slice(&inp[..write_len]);
                 self.length += write_len;
-                if self.length % <Self as crate::HashEngine>::BLOCK_SIZE == 0 {
+                if self.length % <Self as $crate::HashEngine>::BLOCK_SIZE == 0 {
                     self.process_block();
                 }
                 inp = &inp[write_len..];
@@ -187,7 +187,7 @@ macro_rules! hash_type {
             }
 
             /// Copies a byte slice into a hash object.
-            pub fn from_slice(sl: &[u8]) -> Result<Self, crate::FromSliceError> {
+            pub fn from_slice(sl: &[u8]) -> Result<Self, $crate::FromSliceError> {
                 if sl.len() != $bits / 8 {
                     Err(crate::FromSliceError { expected: $bits / 8, got: sl.len() })
                 } else {
@@ -239,7 +239,7 @@ macro_rules! hash_type {
             }
         }
 
-        crate::internal_macros::hash_trait_impls!($bits);
+        $crate::internal_macros::hash_trait_impls!($bits);
     };
 }
 pub(crate) use hash_type;
