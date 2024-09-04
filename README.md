@@ -1,3 +1,8 @@
+**This was an exploratory crate that turned out not to be useful, the
+repository is being archived and this crate should not be used**
+
+If you would like to use the crate name, reach out to me.
+
 # Rust Cryptographic Hash Functions.
 
 This is a simple, minimal-dependency library which implements the bunch of crypotographic hash

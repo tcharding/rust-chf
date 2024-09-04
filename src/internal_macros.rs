@@ -13,8 +13,8 @@ macro_rules! as_ref_impl(
         }
     )
 );
-pub(crate) use as_ref_impl;
 
+pub(crate) use as_ref_impl;
 /// Adds an implementation of the `HashEngine::input` method.
 macro_rules! engine_input_impl(
     ($n:literal) => (

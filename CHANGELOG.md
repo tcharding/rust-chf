@@ -1,3 +1,7 @@
+# 0.3.1 - 2024-09-03
+
+Add repository archival note to readme.
+
 # 0.3.0 - 2024-05-14
 
 * Rename `HashEngine` types to `Engine` [#10](https://github.com/tcharding/rust-chf/pull/10).
